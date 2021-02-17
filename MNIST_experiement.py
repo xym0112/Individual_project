@@ -7,6 +7,7 @@ import torch.optim as optim
 import random
 from torch.utils.data import DataLoader
 from torchvision import models, datasets, transforms
+import matplotlib.pyplot as plt
 
 from attacks import fgsm_attack
 
@@ -94,7 +95,7 @@ def compute_accuracy(model, loader, device):
 # Initialize the model
 model = models.resnet50(pretrained=False, progress=True).to(device)
 model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-model.load_state_dict(torch.load("model.pt", map_location='cpu'))
+model.load_state_dict(torch.load("Desktop/Individual_project/Individual_project/model.pt", map_location='cpu'))
 
 # optimizer = optim.Adam(model.parameters())
 # training(model, optimizer, epochs = 10)
@@ -146,7 +147,7 @@ def adv_test(model, device, test_loader, epsilon):
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
 
-# Run test for each epsilon
+
 accuracies = []
 examples = []
 epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
@@ -156,4 +157,30 @@ for eps in epsilons:
     acc, ex = adv_test(model, device, test_loader, eps)
     accuracies.append(acc)
     examples.append(ex)
-print(accuracies)
+
+# Plot the figure of accuracy against epsilon
+plt.figure(figsize=(5,5))
+plt.plot(epsilons, accuracies, "*-")
+plt.yticks(np.arange(0, 1.1, step=0.1))
+plt.xticks(np.arange(0, .6, step=0.05))
+plt.title("Accuracy vs Epsilon")
+plt.xlabel("Epsilon")
+plt.ylabel("Accuracy")
+plt.show()
+
+# Show examples of adversarial examples and prediction change
+cnt = 0
+plt.figure(figsize=(8,10))
+for i in range(len(epsilons)):
+    for j in range(len(examples[i])):
+        cnt += 1
+        plt.subplot(len(epsilons),len(examples[0]),cnt)
+        plt.xticks([], [])
+        plt.yticks([], [])
+        if j == 0:
+            plt.ylabel("{}".format(epsilons[i]), fontsize=12)
+        orig,adv,ex = examples[i][j]
+        plt.title("{} -> {}".format(orig, adv))
+        plt.imshow(ex, cmap="gray")
+plt.tight_layout()
+plt.show()
