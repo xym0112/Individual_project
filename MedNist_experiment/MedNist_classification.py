@@ -104,13 +104,13 @@ class MedNISTDataset(Dataset):
         return self.transforms(self.image_files[index]), self.labels[index]
 
 train_ds = MedNISTDataset(trainX, trainY, train_transforms)
-train_loader = DataLoader(train_ds, batch_size=300, shuffle=True, num_workers=10)
+train_loader = DataLoader(train_ds, batch_size=256, shuffle=True, num_workers=8)
 
 val_ds = MedNISTDataset(valX, valY, val_transforms)
-val_loader = DataLoader(val_ds, batch_size=300, num_workers=10)
+val_loader = DataLoader(val_ds, batch_size=256, num_workers=8)
 
 test_ds = MedNISTDataset(testX, testY, val_transforms)
-test_loader = DataLoader(test_ds, batch_size=300, num_workers=10)
+test_loader = DataLoader(test_ds, batch_size=256, num_workers=8)
 
 
 batch_size = 300
@@ -142,21 +142,18 @@ def fgsm_attack(image, epsilon, data_grad):
 # Generating adversarial examples
 def adv_examples_gen(model, data, target, epsilon):
     adv_count = 0
-    if adv_train:
-        scores = model(data)
-        loss = F.cross_entropy(scores, target)
-        optimizer.zero_grad()
-        loss.backward()
-        if random.uniform(0, 1) <= 0.5:
-            adv_count += 1
-            data_grad = data.grad.data
-            # Call FGSM Attack, using epsilon 0.2
-            data = fgsm_attack(data, 0.2, data_grad)
+    scores = model(data)
+    loss = F.cross_entropy(scores, target)
+    optimizer.zero_grad()
+    loss.backward()
+    #if random.uniform(0, 1) <= 0.5:
+    adv_count += 1
+    data_grad = data.grad.data
+    # Call FGSM Attack, using epsilon 0.2
+    data = fgsm_attack(data, 0.2, data_grad)
     return adv_count, data
 
-def adv_training(epoch_num, model, train_loader, val_loader):
-    
-    # Normal Training
+def train(epoch_num, model, train_loader, val_loader, name):
     best_metric = -1
     best_metric_epoch = -1
     epoch_loss_values = list()
@@ -175,8 +172,8 @@ def adv_training(epoch_num, model, train_loader, val_loader):
             inputs, labels = inputs.to(device), labels.to(device)
             inputs.requires_grad = True
             optimizer.zero_grad()
-
-            adv_count, inputs = adv_examples_gen(model, inputs, labels, 0.2)
+            if adv_train:
+                adv_count, inputs = adv_examples_gen(model, inputs, labels, 0.2)
 
             outputs = model(inputs)
             loss = loss_function(outputs, labels)
@@ -209,7 +206,7 @@ def adv_training(epoch_num, model, train_loader, val_loader):
                     best_metric = auc_metric
                     best_metric_epoch = epoch + 1
                     with torch.no_grad():
-                        torch.save(model.state_dict(), '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/MedNIST_model.pth')
+                        torch.save(model.state_dict(), '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/'+name+'.pth')
                     print('saved new best metric model')
                 print(f"current epoch: {epoch + 1} current AUC: {auc_metric:.4f}"
                     f" current accuracy: {acc_metric:.4f} best AUC: {best_metric:.4f}"
@@ -217,22 +214,24 @@ def adv_training(epoch_num, model, train_loader, val_loader):
                     
     print(f"train completed, best_metric: {best_metric:.4f} at epoch: {best_metric_epoch}")
 
-#adv_training(epoch_num, model, train_loader, val_loader)
+train(epoch_num, model, train_loader, val_loader)
 
-model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/MedNIST_model.pth'))
-model.eval()
-y_true = list()
-y_pred = list()
-with torch.no_grad():
-    for test_data in test_loader:
-        test_images, test_labels = test_data[0].to(device), test_data[1].to(device)
-        pred = model(test_images).argmax(dim=1)
-        for i in range(len(pred)):
-            y_true.append(test_labels[i].item())
-            y_pred.append(pred[i].item())
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/MedNIST_model.pth'))
+# model.eval()
 
-from sklearn.metrics import classification_report
-print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+def normal_testing(model, device, test_loader):
+    y_true = list()
+    y_pred = list()
+    with torch.no_grad():
+        for test_data in test_loader:
+            test_images, test_labels = test_data[0].to(device), test_data[1].to(device)
+            pred = model(test_images).argmax(dim=1)
+            for i in range(len(pred)):
+                y_true.append(test_labels[i].item())
+                y_pred.append(pred[i].item())
+
+    from sklearn.metrics import classification_report
+    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
 # Pertubate the test set with adversarial attacks and check accuracy
 def adv_test(model, device, test_loader, epsilon):
@@ -280,17 +279,18 @@ def adv_test(model, device, test_loader, epsilon):
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
 
-accuracies = []
-examples = []
-epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+# accuracies = []
+# examples = []
+# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 
-# Run test for each epsilon
-for eps in epsilons:
-    acc, ex = adv_test(model, device, test_loader, eps)
-    accuracies.append(acc)
-    examples.append(ex)
+# # Run test for each epsilon
+# for eps in epsilons:
+#     acc, ex = adv_test(model, device, test_loader, eps)
+#     accuracies.append(acc)
+#     examples.append(ex)
 
-print(accuracies)
 
 ########## Experiment 1: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
-
+adv_train = False
+train(epoch_num, model, train_loader, val_loader, '1_normal_training')
+adv_testing(model, device, test_loader)
