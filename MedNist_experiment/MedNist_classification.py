@@ -167,31 +167,30 @@ def pgd_attack(image, target, epsilon, data_grad, num_steps):
 
 # Generating adversarial examples
 def adv_examples_gen(model, data, target, epsilon, percentage, attack_name):
-    adv_count = 0
     adv_backwards(model, data, target, optimizer)
-    if random.uniform(0, 1) <= percentage:
-        adv_count += 1
-        data_grad = data.grad.data
-        # Call Attacks, using epsilon specified
-        if attack_name == "fgsm":
-            data = fgsm_attack(data, epsilon, data_grad)
-        elif attack_name == 'bim':
-            data = bim_attack(data, target, epsilon, data_grad, 3)
-        elif attack_name == 'pgd':
-            data = pgd_attack(data, target, epsilon, data_grad, 3)
-        else:
-            print('Wrong attack name input')
-            data = None
-    return adv_count, data
+    
+    data_grad = data.grad.data
+    # Call Attacks, using epsilon specified
+    if attack_name == "fgsm":
+        data = fgsm_attack(data, epsilon, data_grad)
+    elif attack_name == 'bim':
+        data = bim_attack(data, target, epsilon, data_grad, 3)
+    elif attack_name == 'pgd':
+        data = pgd_attack(data, target, epsilon, data_grad, 3)
+    else:
+        print('Wrong attack name input')
+        data = None
+    return data
 
 def train(epoch_num, model, train_loader, val_loader, name, percentage):
     best_metric = -1
     best_metric_epoch = -1
     epoch_loss_values = list()
     metric_values = list()
+    adv_count = 0
 
     for epoch in range(epoch_num):
-        adv_count = 0
+        
         model = model.to(device)
         print('-' * 10)
         print("epoch: {} / {}".format(epoch + 1, epoch_num))
@@ -204,8 +203,9 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage):
             inputs.requires_grad = True
             optimizer.zero_grad()
             if adv_train:
-                adv_count, inputs = adv_examples_gen(model, inputs, labels, percentage)
-            print("{}"adv_count)
+                if random.uniform(0, 1) <= percentage:
+                    inputs = adv_examples_gen(model, inputs, labels, 0.1, percentage, "fgsm")
+                    adv_count += len(inputs)
 
             outputs = model(inputs)
             loss = loss_function(outputs, labels)
@@ -218,6 +218,7 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage):
         epoch_loss /= step
         epoch_loss_values.append(epoch_loss)
         print(f"epoch {epoch + 1} average loss: {epoch_loss:.4f}")
+        print("Adversarial count = ", str(adv_count))
 
         if (epoch + 1) % val_interval == 0:
             model.eval()
@@ -243,8 +244,10 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage):
                 print(f"current epoch: {epoch + 1} current AUC: {auc_metric:.4f}"
                     f" current accuracy: {acc_metric:.4f} best AUC: {best_metric:.4f}"
                     f" at epoch: {best_metric_epoch}")
+        
                     
     print(f"train completed, best_metric: {best_metric:.4f} at epoch: {best_metric_epoch}")
+    
 
 #train(epoch_num, model, train_loader, val_loader, name, 0.2)
 
@@ -266,7 +269,7 @@ def normal_testing(model, device, test_loader):
     print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
 # Pertubate the test set with adversarial attacks and check accuracy
-def adv_test(model, device, test_loader, epsilon, attack_name):
+def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
     model = model.to(device)
     correct = 0
     adv_examples = []
@@ -284,16 +287,19 @@ def adv_test(model, device, test_loader, epsilon, attack_name):
         loss.backward()
 
         data_grad = data.grad.data
-        # Call Attacks
-        if attack_name == "fgsm":
-            perturbed_data = fgsm_attack(data, epsilon, data_grad)
-        elif attack_name == 'bim':
-            perturbed_data = bim_attack(data, target, epsilon, data_grad, 3)
-        elif attack_name == 'pgd':
-            perturbed_data = pgd_attack(data, target, epsilon, data_grad, 3)
+        if random.uniform(0, 1) <= percentage:
+            # Call Attacks
+            if attack_name == "fgsm":
+                perturbed_data = fgsm_attack(data, epsilon, data_grad)
+            elif attack_name == 'bim':
+                perturbed_data = bim_attack(data, target, epsilon, data_grad, 3)
+            elif attack_name == 'pgd':
+                perturbed_data = pgd_attack(data, target, epsilon, data_grad, 3)
+            else:
+                print('Wrong attack name input')
+                perturbed_data = None
         else:
-            print('Wrong attack name input')
-            perturbed_data = None
+            perturbed_data = data
         # Re-classify the perturbed image
         output = model(perturbed_data)
 
@@ -376,10 +382,52 @@ def adv_test(model, device, test_loader, epsilon, attack_name):
 
 
 ########## Experiment 2: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
+
 adv_train = True
-train(epoch_num, model, train_loader, val_loader, '1_normal_training', percentage)
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/1_normal_training.pth'))
-# model.eval()
+percentages = [i/10 for i in range(1, 11)]
+accuracies = []
+
+# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
+# for percentage in percentages:
+#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
+#     model.eval()
+#     acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.5)
+#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+#     accuracies.append(acc)
+
+# accuracies = [0.5803541597059806, 0.7467423989308386, 0.7783160708319412, 0.9139659204811226, 0.9341797527564317, 0.9513865686602071, 0.9632475776812562, 0.9488807216839291, 0.975609756097561, 0.9667557634480455]
+# plt.figure(figsize=(5,5))
+# plt.plot(percentages, accuracies, "*-", label='FGSM')
+# plt.legend()
+# plt.yticks(np.arange(0.4, 1.1, step=0.1))
+# plt.xticks(np.arange(0, 1.1, step=0.1))
+# plt.title("Accuracy vs Percentage")
+# plt.xlabel("Percentage of adversarial images in training set")
+# plt.ylabel("Accuracy")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage.png')
+
+# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 50% adversarially pertubated test set
+for percentage in percentages:
+    #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
+    model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
+    model.eval()
+    acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.1)
+    print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+    accuracies.append(acc)
+
+# accuracies = [0.5803541597059806, 0.7467423989308386, 0.7783160708319412, 0.9139659204811226, 0.9341797527564317, 0.9513865686602071, 0.9632475776812562, 0.9488807216839291, 0.975609756097561, 0.9667557634480455]
+plt.figure(figsize=(5,5))
+plt.plot(percentages, accuracies, "*-", label='FGSM')
+plt.legend()
+plt.yticks(np.arange(0.4, 1.1, step=0.1))
+plt.xticks(np.arange(0, 1.1, step=0.1))
+plt.title("Accuracy vs Percentage")
+plt.xlabel("Percentage of adversarial images in 50% pertubated training set")
+plt.ylabel("Accuracy")
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage_0.1.png')
+    
+
 
 
 
