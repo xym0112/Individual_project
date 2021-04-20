@@ -383,9 +383,9 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 ########## Experiment 2: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
 
-adv_train = True
-percentages = [i/10 for i in range(1, 11)]
-accuracies = []
+# adv_train = True
+# percentages = [i/10 for i in range(1, 11)]
+# accuracies = []
 
 # # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
 # for percentage in percentages:
@@ -408,40 +408,34 @@ accuracies = []
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage.png')
 
 # # Use FGSM attack with epsilon 0.1 in the training phase, then test on 50% adversarially pertubated test set
-for percentage in percentages:
-    #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
-    model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
-    model.eval()
-    acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.1)
-    print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
-    accuracies.append(acc)
+# for percentage in percentages:
+#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
+#     model.eval()
+#     acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.1)
+#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+#     accuracies.append(acc)
 
 # accuracies = [0.5803541597059806, 0.7467423989308386, 0.7783160708319412, 0.9139659204811226, 0.9341797527564317, 0.9513865686602071, 0.9632475776812562, 0.9488807216839291, 0.975609756097561, 0.9667557634480455]
-plt.figure(figsize=(5,5))
-plt.plot(percentages, accuracies, "*-", label='FGSM')
-plt.legend()
-plt.yticks(np.arange(0.4, 1.1, step=0.1))
-plt.xticks(np.arange(0, 1.1, step=0.1))
-plt.title("Accuracy vs Percentage")
-plt.xlabel("Percentage of adversarial images in 50% pertubated training set")
-plt.ylabel("Accuracy")
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage_0.1.png')
+# plt.figure(figsize=(5,5))
+# plt.plot(percentages, accuracies, "*-", label='FGSM')
+# plt.legend()
+# plt.yticks(np.arange(0.4, 1.1, step=0.1))
+# plt.xticks(np.arange(0, 1.1, step=0.1))
+# plt.title("Accuracy vs Percentage")
+# plt.xlabel("Percentage of adversarial images in 50% pertubated training set")
+# plt.ylabel("Accuracy")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage_0.1.png')
     
 
 
 
 
 ########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
-# adv_train = True
-# # train(epoch_num, model, train_loader, val_loader, '1_normal_training')
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Individual_project/MedNist_experiment/Pure_adv_trained_model.pth'))
-# model.eval()
-# accuracies = []
-# examples = []
-# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+adv_train = True
+train(epoch_num, model, train_loader, val_loader, 'Pure_adv_trained', 1)
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Individual_project/MedNist_experiment/Pure_adv_trained.pth'))
+model.eval()
+accuracies = []
 
-# # Run test for each epsilon
-# for eps in epsilons:
-#     acc, ex = adv_test(model, device, test_loader, eps)
-#     accuracies.append(acc)
-#     examples.append(ex)
+normal_testing(model, device, test_loader)
