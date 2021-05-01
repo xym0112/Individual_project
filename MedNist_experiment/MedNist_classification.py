@@ -19,7 +19,7 @@ from monai.metrics import compute_roc_auc
 
 np.random.seed(0)
 
-batch_size = 128
+batch_size = 100
 USE_CUDA = True
 epoch_num = 5
 val_interval = 1
@@ -144,6 +144,7 @@ def fgsm_attack(image, epsilon, data_grad):
     # Return the perturbed image
     return perturbed_image
 
+# In this particula attack the results are the same as the pgd - hence ignore BIM
 def bim_attack(image, target, epsilon, data_grad, num_steps):
     # Set step size as the middle point of epsilon/num_steps and epsilon
     step_size = 0.5 * (epsilon/num_steps + epsilon)
@@ -165,6 +166,47 @@ def pgd_attack(image, target, epsilon, data_grad, num_steps):
     
     return perturbed_image
 
+def cw_l2_attack(model, images, target, c=1e-4, kappa=0, lr=0.01):
+    images = images.to(device)
+    target = target.to(device)
+
+    def f(x):
+        outputs = model(x)
+        one_hot_labels = torch.eye(len(outputs[0]))[labels].to(device)
+
+        i, _ = torch.max((1-one_hot_labels)*outputs, dim=1)
+        j = torch.masked_select(outputs, one_hot_labels.byte())
+
+        return torch.clamp(j-i, min=-kappa)
+    
+    w = torch.zeros_like(images, requires_grad=True).to(device)
+    optimizer = optim.Adam([w], lr=lr)
+    prev = 1e10
+    
+    for step in range(max_iter) :
+        a = 1/2*(nn.Tanh()(w) + 1)
+        loss1 = nn.MSELoss(reduction='sum')(a, images)
+        loss2 = torch.sum(c*f(a))
+
+        cost = loss1 + loss2
+
+        optimizer.zero_grad()
+        cost.backward()
+        optimizer.step()
+
+        # Early Stop when loss does not converge.
+        if step % (max_iter//10) == 0 :
+            if cost > prev :
+                print('Attack Stopped due to CONVERGENCE....')
+                return a
+            prev = cost
+        
+        print('- Learning Progress : %2.2f %%        ' %((step+1)/max_iter*100), end='\r')
+
+    attack_images = 1/2*(nn.Tanh()(w) + 1)
+
+    return attack_images
+
 # Generating adversarial examples
 def adv_examples_gen(model, data, target, epsilon, percentage, attack_name):
     adv_backwards(model, data, target, optimizer)
@@ -173,16 +215,18 @@ def adv_examples_gen(model, data, target, epsilon, percentage, attack_name):
     # Call Attacks, using epsilon specified
     if attack_name == "fgsm":
         data = fgsm_attack(data, epsilon, data_grad)
-    elif attack_name == 'bim':
-        data = bim_attack(data, target, epsilon, data_grad, 3)
+    # elif attack_name == 'bim':
+    #     data = bim_attack(data, target, epsilon, data_grad, 3)
     elif attack_name == 'pgd':
         data = pgd_attack(data, target, epsilon, data_grad, 3)
+    elif attack_name == 'cw':
+        data = cw_l2_attack(model, data, target)
     else:
         print('Wrong attack name input')
         data = None
     return data
 
-def train(epoch_num, model, train_loader, val_loader, name, percentage):
+def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_name, epsilon):
     best_metric = -1
     best_metric_epoch = -1
     epoch_loss_values = list()
@@ -204,7 +248,7 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage):
             optimizer.zero_grad()
             if adv_train:
                 if random.uniform(0, 1) <= percentage:
-                    inputs = adv_examples_gen(model, inputs, labels, 0.1, percentage, "fgsm")
+                    inputs = adv_examples_gen(model, inputs, labels, epsilon, percentage, attack_name)
                     adv_count += len(inputs)
 
             outputs = model(inputs)
@@ -273,7 +317,9 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
     model = model.to(device)
     correct = 0
     adv_examples = []
-    
+    y_true  = list()
+    y_pred = list()
+
     for data, target in test_loader:
         data, target = data.to(device), target.to(device)
         data.requires_grad = True
@@ -291,10 +337,12 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
             # Call Attacks
             if attack_name == "fgsm":
                 perturbed_data = fgsm_attack(data, epsilon, data_grad)
-            elif attack_name == 'bim':
-                perturbed_data = bim_attack(data, target, epsilon, data_grad, 3)
+            # elif attack_name == 'bim':
+            #     perturbed_data = bim_attack(data, target, epsilon, data_grad, 3)
             elif attack_name == 'pgd':
                 perturbed_data = pgd_attack(data, target, epsilon, data_grad, 3)
+            # elif attack_name == 'cw':
+            #     data = cw_l2_attack(model, data, target)
             else:
                 print('Wrong attack name input')
                 perturbed_data = None
@@ -305,22 +353,27 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
         # Check for success
         final_pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
+
         for i in range(len(target)):
             if final_pred[i].item() == target[i].item():
                 correct += 1
-                # Special case for saving 0 epsilon examples
-                if (epsilon == 0) and (len(adv_examples) < 5):
-                    adv_ex = perturbed_data[i].squeeze().detach().cpu().numpy()
-                    adv_examples.append( (init_pred[i].item(), final_pred[i].item(), adv_ex) )
             else:
-                # Save some adv examples for visualization later
-                if len(adv_examples) < 5:
-                    adv_ex = perturbed_data[i].squeeze().detach().cpu().numpy()
-                    adv_examples.append( (init_pred[i].item(), final_pred[i].item(), adv_ex) )
+                adv_ex = perturbed_data[i].squeeze().detach().cpu().numpy()
+                adv_examples.append( (init_pred[i].item(), final_pred[i].item(), adv_ex) )
+            y_true.append(target[i].item())
+            y_pred.append(final_pred[i].item())
 
     # Calculate final accuracy for this epsilon
     final_acc = correct/len(testX)
     print("Epsilon: {}\tTest Accuracy = {} / {} = {}".format(epsilon, correct, len(testX), final_acc))
+
+    print("=============")
+
+    from sklearn.metrics import classification_report
+    print(str(epsilon) + attack_name )
+    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+
+    print("=============")
 
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
@@ -329,63 +382,118 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 ########## Experiment 1: Train normally, test on pertubated, does it affect the accuracy? ############
 # adv_train = False
 # #train(epoch_num, model, train_loader, val_loader, 'Normally_trained')
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Normally_trained.pth'))
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
 # model.eval()
 
 # # How does epsilon affects the accuracy for one attack?
-# accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
+# accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
 # epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # examples = [[] for i in range(len(epsilons))]
 
 # for i in range(len(epsilons)):
-#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm')
+#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
 #     accuracies_fgsm.append(acc)
 #     examples[i].append(ex[0])
 
-#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim')
-#     accuracies_bim.append(acc)
-#     examples[i].append(ex[0])
-
-#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd')
+#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
 #     accuracies_pgd.append(acc)
 #     examples[i].append(ex[0])
 
-#     print("================================================")
+    # acc, ex = adv_test(model, device, test_loader, epsilons[i], 'cw', 1)
+    # accuracies_cw.append(acc)
+    # examples[i].append(ex[0])
+
+    #print("================================================")
 
 # plt.figure(figsize=(5,5))
 # plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
-# plt.plot(epsilons, accuracies_bim, "*-", label='BIM')
 # plt.plot(epsilons, accuracies_pgd, "*-", label='PGD')
+# # plt.plot(epsilons, accuracies_cw, "*-", label='CW')
 # plt.legend()
 # plt.yticks(np.arange(0, 1.1, step=0.1))
 # plt.xticks(np.arange(0, .35, step=0.05))
-# plt.title("Accuracy vs Epsilon")
+# plt.title("How do epsilons affect the accuracy of the model?")
 # plt.xlabel("Epsilon")
-# plt.ylabel("Accuracy")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Epsilon.png')
+# plt.ylabel("Accuracy on test set")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Accuracy_vs_Epsilon.png')
 
-# # Examples of each attack
+# ==============================================
+
+# Examples of each attack
 # cnt = 0
-# plt.figure(figsize=(8,10))
+# fig = plt.figure(figsize=(10,8))
+# fig.suptitle("Examples of adversarial images", fontsize=16)
+# sample = next(iter(test_loader))
+# data, target = sample[0].to(device), sample[1].to(device)
+
+# data.requires_grad = True
 # for i in range(len(epsilons)):
+#     output = model(data)
+#     _, init_pred = output.max(1)
+
+#     loss = F.nll_loss(output, target)
+#     model.zero_grad()
+#     loss.backward()
+
+#     data_grad = data.grad.data
+#     adv_ex = fgsm_attack(data, epsilons[i], data_grad).squeeze().detach().cpu().numpy()
+#     examples[i].append(adv_ex)
+#     adv_ex = pgd_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
+#     examples[i].append(adv_ex)
+
 #     for j in range(len(examples[i])):
 #         cnt += 1
-#         plt.subplot(len(epsilons),len(examples[0]),cnt)
+#         ax = plt.subplot(len(epsilons),len(examples[0]),cnt)
 #         plt.xticks([], [])
 #         plt.yticks([], [])
+
 #         if j == 0:
 #             plt.ylabel("Eps: {}".format(epsilons[i]), fontsize=14)
-#         _, _, ex = examples[i][j]
-#         plt.imshow(ex, cmap="gray")
+#         if i == 0 and j == 0:
+#             ax.title.set_text('FGSM')  
+
+#         if i == 0 and j == 1:  
+#             ax.title.set_text('PGD')
+        
+#         ex = examples[i][j]
+#         plt.imshow(ex[0], cmap="gray")
+
+
 # plt.tight_layout()
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/FGSM_example.png')
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample.png')
+
+# =======================================================
+
+########## Experiment 2.1: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
+# Compare the accuracy of fgsm-attack-trained model and pgd-attack-trained model
+adv_train = True
+accuracies = []
+# train(epoch_num, model, train_loader, val_loader, 'fgsm_trained', 1, 'fgsm')
+# train(epoch_num, model, train_loader, val_loader, 'pgd_trained', 1, 'pgd')
+
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
+# model.eval()
 
 
-########## Experiment 2: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
+# print("Adversarial training using fgsm achieves an accuracy of: " + str(acc) + " .")
 
-# adv_train = True
-# percentages = [i/10 for i in range(1, 11)]
-# accuracies = []
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
+# model.eval()
+
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
+# print("Adversarial training using pgd achieves an accuracy of: " + str(acc) + " .")
+
+
+# =======================================
+
+# Compare different epsilons
+for i in range(0, 35, 5):
+    train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm_epsilon' + str(i/100), 1, 'fgsm', i/100)
+
+
+
+################## Experiment 2.2: checking how much adversarial training helps ##################################
 
 # # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
 # for percentage in percentages:
@@ -432,10 +540,9 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 
 ########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
-adv_train = True
-train(epoch_num, model, train_loader, val_loader, 'Pure_adv_trained', 1)
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Individual_project/MedNist_experiment/Pure_adv_trained.pth'))
-model.eval()
-accuracies = []
+# adv_train = True
+# train(epoch_num, model, train_loader, val_loader, 'Pure_adv_trained', 1)
+# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Individual_project/MedNist_experiment/Pure_adv_trained.pth'))
+# model.eval()
 
-normal_testing(model, device, test_loader)
+# normal_testing(model, device, test_loader)
