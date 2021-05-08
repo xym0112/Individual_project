@@ -19,7 +19,7 @@ from monai.metrics import compute_roc_auc
 
 np.random.seed(0)
 
-batch_size = 100
+batch_size = 128
 USE_CUDA = True
 epoch_num = 5
 val_interval = 1
@@ -385,9 +385,11 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
 # model.eval()
 
+# normal_testing(model, device, test_loader)
+
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
-# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # examples = [[] for i in range(len(epsilons))]
 
 # for i in range(len(epsilons)):
@@ -466,30 +468,79 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 ########## Experiment 2.1: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
 # Compare the accuracy of fgsm-attack-trained model and pgd-attack-trained model
-adv_train = True
-accuracies = []
+# adv_train = True
+# accuracies = []
+# epsilons = [0, .05, .1, .15, .2, .25, .3]
 # train(epoch_num, model, train_loader, val_loader, 'fgsm_trained', 1, 'fgsm')
 # train(epoch_num, model, train_loader, val_loader, 'pgd_trained', 1, 'pgd')
 
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
 # model.eval()
 
-
+# print("======== FGSM trained, test on FGSM test set ===========")
 # acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
 # print("Adversarial training using fgsm achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
+
 
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
 # model.eval()
-
+# print("======== PGD trained, test on FGSM test set ===========")
 # acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
 # print("Adversarial training using pgd achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
+
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
+# model.eval()
+
+# print("======== FGSM trained, test on FGSM test set ===========")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
+# print("Adversarial training using fgsm achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
+
+
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
+# model.eval()
+# print("======== PGD trained, test on FGSM test set ===========")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
+# print("Adversarial training using pgd achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
 
 
 # =======================================
 
 # Compare different epsilons
 for i in range(0, 35, 5):
-    train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm_epsilon' + str(i/100), 1, 'fgsm', i/100)
+    # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm_epsilon' + str(i/100), 1, 'fgsm', i/100)
+    model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
+    model.eval()
+    acc_list = []
+    for j in range(0, 35, 5):
+        acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
+        acc_list.append(acc)
+    
+    accuracies[ep] = acc_list
+
+print(accuracies)
+
+# plt.figure(figsize=(6,6))
+# plt.plot(epsilons, accuracies, "*-", label='FGSM')
+# plt.legend()
+# plt.yticks(np.arange(0, 1.1, step=0.1))
+# plt.xticks(np.arange(0, .35, step=0.05))
+# plt.title("Epsilon in adversarial training vs performance")
+# plt.xlabel("Epsilon in adversarial training")
+# plt.ylabel("Accuracy on test set")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/epsilon_vs_performace.png')
+
 
 
 
