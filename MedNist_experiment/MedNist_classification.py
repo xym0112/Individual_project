@@ -231,10 +231,10 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_n
     best_metric_epoch = -1
     epoch_loss_values = list()
     metric_values = list()
-    adv_count = 0
+    
 
     for epoch in range(epoch_num):
-        
+        adv_count = 0
         model = model.to(device)
         print('-' * 10)
         print("epoch: {} / {}".format(epoch + 1, epoch_num))
@@ -369,17 +369,28 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
     print("=============")
 
-    from sklearn.metrics import classification_report
-    print(str(epsilon) + attack_name )
-    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+    # from sklearn.metrics import classification_report
+    # print(str(epsilon) + attack_name )
+    # print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
-    print("=============")
+    # print("=============")
 
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
 
 
 ########## Experiment 1: Train normally, test on pertubated, does it affect the accuracy? ############
+# Show examples of image:
+
+# plt.subplots(2, 3, figsize=(8, 8))
+# for i,k in enumerate(np.random.randint(num_total, size=9)):
+#     im = Image.open(image_file_list[k])
+#     arr = np.array(im)
+#     plt.subplot(2, 3, i + 1)
+#     plt.xlabel(class_names[image_label_list[k]])
+#     plt.imshow(arr, cmap='gray', vmin=0, vmax=255)
+# plt.tight_layout()
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/normal_example.png')
 # adv_train = False
 # #train(epoch_num, model, train_loader, val_loader, 'Normally_trained')
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
@@ -515,21 +526,47 @@ epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # print()
 
 
-# =======================================
-
-# Compare different epsilons
-for i in range(0, 35, 5):
-    # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm_epsilon' + str(i/100), 1, 'fgsm', i/100)
-    model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
-    model.eval()
-    acc_list = []
-    for j in range(0, 35, 5):
-        acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
-        acc_list.append(acc)
+# ======================================= Experiment 2.2: compare epsilons ======================
+# accuracies = []
+# # Compare different epsilons
+# for i in range(0, 35, 5):
+#     # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm_epsilon' + str(i/100), 1, 'fgsm', i/100)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
+#     model.eval()
+#     acc_list = []
+#     for j in range(0, 35, 5):
+#         acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
+#         acc_list.append(round(acc, 4))
     
-    accuracies[ep] = acc_list
+#     accuracies.append(acc_list)
 
-print(accuracies)
+# fig, ax = plt.subplots()
+
+
+# rows, cols = [str(i/100) for i in range(0, 35, 5)], [str(i/100) for i in range(0, 35, 5)]
+
+# rcolors = plt.cm.BuPu(np.full(len(rows), 0.1))
+# ccolors = plt.cm.BuPu(np.full(len(cols), 0.1))
+# table = ax.table(cellText=accuracies, rowLabels=rows, rowColours=rcolors, colLabels=cols, colColours=ccolors, loc='center')
+# table[(1, 0)].set_facecolor("#56b5fd")
+# table[(2, 0)].set_facecolor("#56b5fd")
+# table[(3, 1)].set_facecolor("#56b5fd")
+# table[(4, 2)].set_facecolor("#56b5fd")
+# table[(5, 3)].set_facecolor("#56b5fd")
+# table[(6, 3)].set_facecolor("#56b5fd")
+# table[(7, 4)].set_facecolor("#56b5fd")
+
+# ax.set_xlabel("Epsilon used in testing")
+# ax.set_ylabel("Epsilon used in training")
+# ax.get_xaxis().set_visible(False)
+# ax.get_yaxis().set_visible(False)
+
+# table.scale(1, 1.5)
+# plt.box(on=None)
+
+# plt.title("Epsilons used in training and testing")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/epsilon_train_vs_test.png')
+
 
 # plt.figure(figsize=(6,6))
 # plt.plot(epsilons, accuracies, "*-", label='FGSM')
@@ -544,7 +581,7 @@ print(accuracies)
 
 
 
-################## Experiment 2.2: checking how much adversarial training helps ##################################
+################## Experiment 2.3: checking how much adversarial training helps ##################################
 
 # # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
 # for percentage in percentages:
@@ -587,6 +624,29 @@ print(accuracies)
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage_0.1.png')
     
 
+   ################################# 
+# Pick the best situation: 0.1 in training and 0.05 in testing
+# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
+percentages = [i/10 for i in range(0, 11)]
+accuracies = []
+for percentage in percentages:
+    #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage, 'fgsm', 0.1)
+    model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/Adversarially_trained_' + str(percentage) + '.pth'))
+    model.eval()
+    acc, _ = adv_test(model, device, test_loader, 0.05, 'fgsm', 1)
+    print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+    accuracies.append(acc * 100)
+
+percentages = [i for i in range(0, 110, 10)]
+plt.figure(figsize=(5,5))
+plt.plot(percentages, accuracies, "*-", label='FGSM')
+plt.legend()
+plt.yticks(np.arange(0, 110, step=10))
+plt.xticks(np.arange(0, 110, step=10))
+plt.title("Accuracy vs Percentage")
+plt.xlabel("Number(%) of adversarial images in training set")
+plt.ylabel("Accuracy(%)")
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/accuracy_vs_percentage.png')
 
 
 
