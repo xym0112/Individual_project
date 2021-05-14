@@ -19,7 +19,7 @@ from monai.metrics import compute_roc_auc
 
 np.random.seed(0)
 
-batch_size = 128
+batch_size = 64
 USE_CUDA = True
 epoch_num = 5
 val_interval = 1
@@ -527,22 +527,36 @@ epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 
 
 # ======================================= Experiment 2.2: compare epsilons ======================
-# accuracies = []
-# # Compare different epsilons
-# for i in range(0, 35, 5):
-#     # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm_epsilon' + str(i/100), 1, 'fgsm', i/100)
-#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
-#     model.eval()
-#     acc_list = []
-#     for j in range(0, 35, 5):
-#         acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
-#         acc_list.append(round(acc, 4))
+accuracies = []
+# Compare different epsilons
+for i in range(0, 35, 5):
+    train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm+pgd/fgsm+pgd_epsilon' + str(i/100), 1, 'fgsm', i/100)
+    #model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
+    model.eval()
+    acc_list = []
+    for j in range(0, 35, 5):
+        acc, _ = adv_test(model, device, test_loader, j/100, 'pgd', 1)
+        acc_list.append(round(acc, 4))
     
-#     accuracies.append(acc_list)
+    accuracies.append(acc_list)
+print(accuracies)
+
+# FGSM+PGD:
+# [[0.9992, 0.7409, 0.4272, 0.3065, 0.2182, 0.1754, 0.1432], [0.9975, 0.9749, 0.8607, 0.6261, 0.4978, 0.4008, 0.3181], 
+# [0.9881, 0.9637, 0.9362, 0.8096, 0.5884, 0.4866, 0.4517], [0.9193, 0.7903, 0.9419, 0.9061, 0.6966, 0.4972, 0.4753], 
+# [0.8281, 0.6325, 0.785, 0.9088, 0.8057, 0.6333, 0.4664], [0.6422, 0.4322, 0.4581, 0.7942, 0.8912, 0.7518, 0.5799], [0.6027, 0.3628, 0.3593, 0.4604, 0.7723, 0.7758, 0.5618]]
+
+# PGD+PGD:
+# [[0.9973, 0.4659, 0.1721, 0.1184, 0.1216, 0.0743, 0.0276], [0.9945, 0.942, 0.6968, 0.5063, 0.3974, 0.2793, 0.2003], 
+# [0.9878, 0.9522, 0.8964, 0.7822, 0.6266, 0.5331, 0.4237], [0.989, 0.9561, 0.9175, 0.8612, 0.7708, 0.6315, 0.5057], 
+# [0.984, 0.9479, 0.9145, 0.8774, 0.8212, 0.7339, 0.5937], [0.6549, 0.6024, 0.5693, 0.6173, 0.8912, 0.8174, 0.6253], [0.5241, 0.4734, 0.4619, 0.4537, 0.639, 0.921, 0.8106]]       
+
+# PGD+FGSM:
+# [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
+# [0.9853, 0.9644, 0.9405, 0.9021, 0.8403, 0.7147, 0.5605], [0.9818, 0.9574, 0.9526, 0.9415, 0.9238, 0.8801, 0.8004], 
+# [0.5778, 0.5052, 0.4901, 0.7165, 0.7668, 0.7469, 0.6848], [0.5436, 0.4749, 0.4641, 0.4901, 0.6497, 0.6488, 0.5989]]
 
 # fig, ax = plt.subplots()
-
-
 # rows, cols = [str(i/100) for i in range(0, 35, 5)], [str(i/100) for i in range(0, 35, 5)]
 
 # rcolors = plt.cm.BuPu(np.full(len(rows), 0.1))
@@ -627,26 +641,26 @@ epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
    ################################# 
 # Pick the best situation: 0.1 in training and 0.05 in testing
 # # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
-percentages = [i/10 for i in range(0, 11)]
-accuracies = []
-for percentage in percentages:
-    #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage, 'fgsm', 0.1)
-    model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/Adversarially_trained_' + str(percentage) + '.pth'))
-    model.eval()
-    acc, _ = adv_test(model, device, test_loader, 0.05, 'fgsm', 1)
-    print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
-    accuracies.append(acc * 100)
+# percentages = [i/10 for i in range(0, 11)]
+# accuracies = []
+# for percentage in percentages:
+#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage, 'fgsm', 0.1)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/Adversarially_trained_' + str(percentage) + '.pth'))
+#     model.eval()
+#     acc, _ = adv_test(model, device, test_loader, 0.05, 'fgsm', 1)
+#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+#     accuracies.append(acc * 100)
 
-percentages = [i for i in range(0, 110, 10)]
-plt.figure(figsize=(5,5))
-plt.plot(percentages, accuracies, "*-", label='FGSM')
-plt.legend()
-plt.yticks(np.arange(0, 110, step=10))
-plt.xticks(np.arange(0, 110, step=10))
-plt.title("Accuracy vs Percentage")
-plt.xlabel("Number(%) of adversarial images in training set")
-plt.ylabel("Accuracy(%)")
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/accuracy_vs_percentage.png')
+# percentages = [i for i in range(0, 110, 10)]
+# plt.figure(figsize=(5,5))
+# plt.plot(percentages, accuracies, "*-", label='FGSM')
+# plt.legend()
+# plt.yticks(np.arange(0, 110, step=10))
+# plt.xticks(np.arange(0, 110, step=10))
+# plt.title("Accuracy vs Percentage")
+# plt.xlabel("Number(%) of adversarial images in training set")
+# plt.ylabel("Accuracy(%)")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/accuracy_vs_percentage.png')
 
 
 

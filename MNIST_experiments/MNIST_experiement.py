@@ -95,11 +95,11 @@ def compute_accuracy(model, loader, device):
 # Initialize the model
 model = models.resnet50(pretrained=False, progress=True).to(device)
 model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-# model.load_state_dict(torch.load("Desktop/Individual_project/Individual_project/model.pt", map_location='cpu'))
+model.load_state_dict(torch.load("/homes/yx3017/Desktop/Individual_project/Individual_project/MNIST_experiments/model.pt", map_location='cpu'))
 
 optimizer = optim.Adam(model.parameters())
-training(model, optimizer, epochs = 10)
-torch.save(model.state_dict(), 'adv_model.pt')
+# training(model, optimizer, epochs = 10)
+#torch.save(model.state_dict(), 'adv_model.pt')
 
 # Pertubate the test set with adversarial attacks and check accuracy
 def adv_test(model, device, test_loader, epsilon):
@@ -158,15 +158,15 @@ for eps in epsilons:
     accuracies.append(acc)
     examples.append(ex)
 
-# Plot the figure of accuracy against epsilon
-plt.figure(figsize=(5,5))
-plt.plot(epsilons, accuracies, "*-")
-plt.yticks(np.arange(0, 1.1, step=0.1))
-plt.xticks(np.arange(0, .6, step=0.05))
-plt.title("Accuracy vs Epsilon")
-plt.xlabel("Epsilon")
-plt.ylabel("Accuracy")
-plt.show()
+# # Plot the figure of accuracy against epsilon
+# plt.figure(figsize=(5,5))
+# plt.plot(epsilons, accuracies, "*-")
+# plt.yticks(np.arange(0, 1.1, step=0.1))
+# plt.xticks(np.arange(0, .6, step=0.05))
+# plt.title("Accuracy vs Epsilon")
+# plt.xlabel("Epsilon")
+# plt.ylabel("Accuracy")
+# plt.show()
 
 # Show examples of adversarial examples and prediction change
 cnt = 0
@@ -183,4 +183,4 @@ for i in range(len(epsilons)):
         plt.title("{} -> {}".format(orig, adv))
         plt.imshow(ex, cmap="gray")
 plt.tight_layout()
-plt.show()
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MNIST_experiments/adv_number_example.png')
