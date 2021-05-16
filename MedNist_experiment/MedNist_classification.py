@@ -208,7 +208,7 @@ def cw_l2_attack(model, images, target, c=1e-4, kappa=0, lr=0.01):
     return attack_images
 
 # Generating adversarial examples
-def adv_examples_gen(model, data, target, epsilon, percentage, attack_name):
+def adv_examples_gen(model, data, target, epsilon, attack_name):
     adv_backwards(model, data, target, optimizer)
     
     data_grad = data.grad.data
@@ -241,15 +241,15 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_n
         model.train()
         epoch_loss = 0
         step = 0
-        for (inputs, labels) in train_loader:
+        for i, (inputs, labels) in enumerate(train_loader):
             step += 1
             inputs, labels = inputs.to(device), labels.to(device)
             inputs.requires_grad = True
             optimizer.zero_grad()
             if adv_train:
-                if random.uniform(0, 1) <= percentage:
-                    inputs = adv_examples_gen(model, inputs, labels, epsilon, percentage, attack_name)
-                    adv_count += len(inputs)
+                if i <= percentage * len(train_loader):
+                    inputs = adv_examples_gen(model, inputs, labels, epsilon, attack_name)
+                    adv_count = i
 
             outputs = model(inputs)
             loss = loss_function(outputs, labels)
@@ -282,9 +282,9 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_n
                 if auc_metric > best_metric:
                     best_metric = auc_metric
                     best_metric_epoch = epoch + 1
-                    with torch.no_grad():
-                        torch.save(model.state_dict(), '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/'+name+'.pth')
-                    print('saved new best metric model')
+                    # with torch.no_grad():
+                    #     torch.save(model.state_dict(), '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/'+name+'.pth')
+                    # print('saved new best metric model')
                 print(f"current epoch: {epoch + 1} current AUC: {auc_metric:.4f}"
                     f" current accuracy: {acc_metric:.4f} best AUC: {best_metric:.4f}"
                     f" at epoch: {best_metric_epoch}")
@@ -320,7 +320,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
     y_true  = list()
     y_pred = list()
 
-    for data, target in test_loader:
+    for i, (data, target) in enumerate(test_loader):
         data, target = data.to(device), target.to(device)
         data.requires_grad = True
 
@@ -333,7 +333,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
         loss.backward()
 
         data_grad = data.grad.data
-        if random.uniform(0, 1) <= percentage:
+        if i <= percentage * len(test_loader):
             # Call Attacks
             if attack_name == "fgsm":
                 perturbed_data = fgsm_attack(data, epsilon, data_grad)
@@ -527,24 +527,28 @@ epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 
 
 # ======================================= Experiment 2.2: compare epsilons ======================
-accuracies = []
-# Compare different epsilons
-for i in range(0, 35, 5):
-    train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm+pgd/fgsm+pgd_epsilon' + str(i/100), 1, 'fgsm', i/100)
-    #model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
-    model.eval()
-    acc_list = []
-    for j in range(0, 35, 5):
-        acc, _ = adv_test(model, device, test_loader, j/100, 'pgd', 1)
-        acc_list.append(round(acc, 4))
+# accuracies = []
+# # Compare different epsilons
+# for i in range(0, 35, 5):
+#     train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm+pgd/fgsm+pgd_epsilon' + str(i/100), 1, 'fgsm', i/100)
+#     #model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
+#     model.eval()
+#     acc_list = []
+#     for j in range(0, 35, 5):
+#         acc, _ = adv_test(model, device, test_loader, j/100, 'pgd', 1)
+#         acc_list.append(round(acc, 4))
     
-    accuracies.append(acc_list)
-print(accuracies)
+#     accuracies.append(acc_list)
+# print(accuracies)
 
 # FGSM+PGD:
 # [[0.9992, 0.7409, 0.4272, 0.3065, 0.2182, 0.1754, 0.1432], [0.9975, 0.9749, 0.8607, 0.6261, 0.4978, 0.4008, 0.3181], 
 # [0.9881, 0.9637, 0.9362, 0.8096, 0.5884, 0.4866, 0.4517], [0.9193, 0.7903, 0.9419, 0.9061, 0.6966, 0.4972, 0.4753], 
 # [0.8281, 0.6325, 0.785, 0.9088, 0.8057, 0.6333, 0.4664], [0.6422, 0.4322, 0.4581, 0.7942, 0.8912, 0.7518, 0.5799], [0.6027, 0.3628, 0.3593, 0.4604, 0.7723, 0.7758, 0.5618]]
+# Another one:
+# [[0.9982, 0.5944, 0.3214, 0.2016, 0.1502, 0.1059, 0.0575], [0.9988, 0.9656, 0.7802, 0.5217, 0.4307, 0.2873, 0.197], 
+# [0.9658, 0.945, 0.9287, 0.7765, 0.5421, 0.4698, 0.4044], [0.8132, 0.5957, 0.9185, 0.9016, 0.7818, 0.6114, 0.5043], 
+# [0.6891, 0.4993, 0.6632, 0.9061, 0.8316, 0.6612, 0.5443], [0.6397, 0.4375, 0.4656, 0.704, 0.9011, 0.7716, 0.5974], [0.5119, 0.3435, 0.3553, 0.4632, 0.7147, 0.8737, 0.7279]]
 
 # PGD+PGD:
 # [[0.9973, 0.4659, 0.1721, 0.1184, 0.1216, 0.0743, 0.0276], [0.9945, 0.942, 0.6968, 0.5063, 0.3974, 0.2793, 0.2003], 
@@ -640,29 +644,42 @@ print(accuracies)
 
    ################################# 
 # Pick the best situation: 0.1 in training and 0.05 in testing
-# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
-# percentages = [i/10 for i in range(0, 11)]
-# accuracies = []
-# for percentage in percentages:
-#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage, 'fgsm', 0.1)
-#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/Adversarially_trained_' + str(percentage) + '.pth'))
-#     model.eval()
-#     acc, _ = adv_test(model, device, test_loader, 0.05, 'fgsm', 1)
-#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
-#     accuracies.append(acc * 100)
+# Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% FGSM-adversarially pertubated test set
 
-# percentages = [i for i in range(0, 110, 10)]
-# plt.figure(figsize=(5,5))
-# plt.plot(percentages, accuracies, "*-", label='FGSM')
-# plt.legend()
-# plt.yticks(np.arange(0, 110, step=10))
-# plt.xticks(np.arange(0, 110, step=10))
-# plt.title("Accuracy vs Percentage")
-# plt.xlabel("Number(%) of adversarial images in training set")
-# plt.ylabel("Accuracy(%)")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/accuracy_vs_percentage.png')
+# 0.15 + 0.1
+# [37.253591713999334, 58.820581356498494, 61.142666221182765, 61.69395255596392, 64.75108586702305, 70.13030404276645, 77.24690945539592, 81.94119612429, 83.92916805880387, 84.76445038422987, 98.94754426996325]
+
+# 0.2+0.15
+# [20.748412963581693, 48.27931840962245, 51.13598396257936, 49.86635482793184, 49.9164717674574, 51.06916137654527, 51.33645172068159, 52.42231874373539, 56.615436017373874, 56.76578683595055, 91.88105579685933]
 
 
+# 0.25+0.15
+# [22.36886067490812, 42.165051787504176, 52.50584697627798, 55.27898429669228, 55.34580688272636, 55.12863347811561, 54.25993985967257, 56.16438356164384, 56.44837955228867, 56.030738389575674, 92.96692281991314]
+
+# 0.3+0.2
+# [24.206481790845306, 33.06047444036084, 33.16070831941197, 35.03174072836619, 32.124958235883724, 33.34447043100568, 33.99599064483795, 34.53057133311059, 34.66421650517875, 32.8600066822586, 84.69762779819578]
+
+percentages = [i/10 for i in range(0, 11)]
+accuracies = []
+for percentage in percentages:
+    train(epoch_num, model, train_loader, val_loader, 'experiment_2/how_much_adv_help/0.3+0.2/Adversarially_trained_' + str(percentage), percentage, 'fgsm', 0.3)
+    # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/second attempt/Adversarially_trained_' + str(percentage) + '.pth'))
+    model.eval()
+    acc, _ = adv_test(model, device, test_loader, 0.2, 'fgsm', 1)
+    print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+    accuracies.append(acc * 100)
+print(accuracies)
+
+percentages = [i for i in range(0, 110, 10)]
+plt.figure(figsize=(5,5))
+plt.plot(percentages, accuracies, "*-", label='FGSM')
+plt.legend()
+plt.yticks(np.arange(0, 110, step=10))
+plt.xticks(np.arange(0, 110, step=10))
+plt.title("Accuracy vs Percentage")
+plt.xlabel("Number(%) of adversarial images in training set")
+plt.ylabel("Accuracy(%)")
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/0.3+0.2/accuracy_vs_percentage.png')
 
 ########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
 # adv_train = True
