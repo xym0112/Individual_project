@@ -147,23 +147,31 @@ def fgsm_attack(image, epsilon, data_grad):
     # Return the perturbed image
     return perturbed_image
 
-# In this particula attack the results are the same as the pgd - hence ignore BIM
+
 def bim_attack(image, target, epsilon, data_grad, num_steps):
     # Set step size as the middle point of epsilon/num_steps and epsilon
     step_size = 0.5 * (epsilon/num_steps + epsilon)
     for i in range(num_steps):
         perturbed_image = fgsm_attack(image, step_size, data_grad).clone().detach().requires_grad_(True)
+        # clipped_delta = torch.clamp(perturbed_image.data - image.data, -epsilon, epsilon) #clipping the delta
+        # perturbed_image = torch.tensor(image.data + clipped_delta).clone().detach().requires_grad_(True)
         adv_backwards(model, perturbed_image, target, optimizer)
         data_grad = perturbed_image.grad.data
     return perturbed_image
 
 def pgd_attack(image, target, epsilon, data_grad, num_steps):
     step_size = 0.5 * (epsilon/num_steps + epsilon)
+
+    batch, ch, row, col = image.shape
+    uni_noise = np.random.uniform(-epsilon, epsilon, (batch, row, col))
+    uni_noise = torch.from_numpy(uni_noise.reshape(batch, ch, row, col)).to(device, dtype=torch.float)
+    
+    image = image + uni_noise
     for i in range(num_steps):
+        
         perturbed_image = fgsm_attack(image, step_size, data_grad).clone().detach().requires_grad_(True)
         clipped_delta = torch.clamp(perturbed_image.data - image.data, -epsilon, epsilon) #clipping the delta
         perturbed_image = torch.tensor(image.data + clipped_delta).clone().detach().requires_grad_(True)
-
         adv_backwards(model, perturbed_image, target, optimizer)
         data_grad = perturbed_image.grad.data
     
@@ -218,12 +226,12 @@ def adv_examples_gen(model, data, target, epsilon, attack_name):
     # Call Attacks, using epsilon specified
     if attack_name == "fgsm":
         data = fgsm_attack(data, epsilon, data_grad)
-    # elif attack_name == 'bim':
-    #     data = bim_attack(data, target, epsilon, data_grad, 3)
+    elif attack_name == 'bim':
+        data = bim_attack(data, target, epsilon, data_grad, 3)
     elif attack_name == 'pgd':
         data = pgd_attack(data, target, epsilon, data_grad, 3)
-    elif attack_name == 'cw':
-        data = cw_l2_attack(model, data, target)
+    # # elif attack_name == 'cw':
+    #     data = cw_l2_attack(model, data, target)
     else:
         print('Wrong attack name input')
         data = None
@@ -285,9 +293,9 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_n
                 if auc_metric > best_metric:
                     best_metric = auc_metric
                     best_metric_epoch = epoch + 1
-                    # with torch.no_grad():
-                    #     torch.save(model.state_dict(), '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/'+name+'.pth')
-                    # print('saved new best metric model')
+                    with torch.no_grad():
+                        torch.save(model.state_dict(), '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/'+name+'.pth')
+                    print('saved new best metric model')
                 print(f"current epoch: {epoch + 1} current AUC: {auc_metric:.4f}"
                     f" current accuracy: {acc_metric:.4f} best AUC: {best_metric:.4f}"
                     f" at epoch: {best_metric_epoch}")
@@ -304,6 +312,7 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_n
 def normal_testing(model, device, test_loader):
     y_true = list()
     y_pred = list()
+    acc = [0 for c in class_names]
     with torch.no_grad():
         for test_data in test_loader:
             test_images, test_labels = test_data[0].to(device), test_data[1].to(device)
@@ -311,9 +320,13 @@ def normal_testing(model, device, test_loader):
             for i in range(len(pred)):
                 y_true.append(test_labels[i].item())
                 y_pred.append(pred[i].item())
-
-    from sklearn.metrics import classification_report
+    
+    from sklearn.metrics import classification_report, confusion_matrix
     print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+    cm = confusion_matrix(y_true, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    print(cm.diagonal())
+
 
 # Pertubate the test set with adversarial attacks and check accuracy
 def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
@@ -340,8 +353,8 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
             # Call Attacks
             if attack_name == "fgsm":
                 perturbed_data = fgsm_attack(data, epsilon, data_grad)
-            # elif attack_name == 'bim':
-            #     perturbed_data = bim_attack(data, target, epsilon, data_grad, 3)
+            elif attack_name == 'bim':
+                 perturbed_data = bim_attack(data, target, epsilon, data_grad, 3)
             elif attack_name == 'pgd':
                 perturbed_data = pgd_attack(data, target, epsilon, data_grad, 3)
             # elif attack_name == 'cw':
@@ -361,8 +374,9 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
             if final_pred[i].item() == target[i].item():
                 correct += 1
             else:
-                adv_ex = perturbed_data[i].squeeze().detach().cpu().numpy()
-                adv_examples.append( (init_pred[i].item(), final_pred[i].item(), adv_ex) )
+                if i == 0:
+                    adv_ex = perturbed_data[i].squeeze().detach().cpu().numpy()
+                    adv_examples.append( adv_ex )
             y_true.append(target[i].item())
             y_pred.append(final_pred[i].item())
 
@@ -372,9 +386,11 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
     # print("=============")
 
-    # from sklearn.metrics import classification_report
-    # print(str(epsilon) + attack_name )
+    # from sklearn.metrics import classification_report, confusion_matrix
     # print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+    # cm = confusion_matrix(y_true, y_pred)
+    # cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    # print(cm.diagonal())
 
     # print("=============")
 
@@ -400,83 +416,90 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # model.eval()
 
 # normal_testing(model, device, test_loader)
+# adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
 
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
-epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+# #  
 # examples = [[] for i in range(len(epsilons))]
-
+# accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
 # for i in range(len(epsilons)):
 #     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
 #     accuracies_fgsm.append(acc)
+#     examples[i].append(ex[0])
+
+#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim', 1)
+#     accuracies_bim.append(acc)
 #     examples[i].append(ex[0])
 
 #     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
 #     accuracies_pgd.append(acc)
 #     examples[i].append(ex[0])
 
-    # acc, ex = adv_test(model, device, test_loader, epsilons[i], 'cw', 1)
-    # accuracies_cw.append(acc)
-    # examples[i].append(ex[0])
+#     print("================================================")
 
-    #print("================================================")
 
 # plt.figure(figsize=(5,5))
 # plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
+# plt.plot(epsilons, accuracies_bim, "*-", label='BIM')
 # plt.plot(epsilons, accuracies_pgd, "*-", label='PGD')
-# # plt.plot(epsilons, accuracies_cw, "*-", label='CW')
 # plt.legend()
 # plt.yticks(np.arange(0, 1.1, step=0.1))
 # plt.xticks(np.arange(0, .35, step=0.05))
 # plt.title("How do epsilons affect the accuracy of the model?")
 # plt.xlabel("Epsilon")
 # plt.ylabel("Accuracy on test set")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Accuracy_vs_Epsilon.png')
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Accuracy_vs_Epsilon_new.png')
 
 # ==============================================
 
 # Examples of each attack
 # cnt = 0
-# fig = plt.figure(figsize=(10,8))
+# fig = plt.figure()
 # fig.suptitle("Examples of adversarial images", fontsize=16)
 # sample = next(iter(test_loader))
 # data, target = sample[0].to(device), sample[1].to(device)
 
 # data.requires_grad = True
-# for i in range(len(epsilons)):
-#     output = model(data)
-#     _, init_pred = output.max(1)
+# for j in range(3):
+#     for i in range(len(epsilons)):
+#         output = model(data)
+#         _, init_pred = output.max(1)
 
-#     loss = F.nll_loss(output, target)
-#     model.zero_grad()
-#     loss.backward()
+#         loss = F.nll_loss(output, target)
+#         model.zero_grad()
+#         loss.backward()
 
-#     data_grad = data.grad.data
-#     adv_ex = fgsm_attack(data, epsilons[i], data_grad).squeeze().detach().cpu().numpy()
-#     examples[i].append(adv_ex)
-#     adv_ex = pgd_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
-#     examples[i].append(adv_ex)
+#         data_grad = data.grad.data
+#         adv_ex = fgsm_attack(data, epsilons[i], data_grad).squeeze().detach().cpu().numpy()
+#         examples[j].append(adv_ex)
+#         adv_ex = bim_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
+#         examples[j].append(adv_ex)
+#         adv_ex = pgd_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
+#         examples[j].append(adv_ex)
 
-#     for j in range(len(examples[i])):
 #         cnt += 1
-#         ax = plt.subplot(len(epsilons),len(examples[0]),cnt)
+#         ax = plt.subplot(3, len(epsilons),cnt)
 #         plt.xticks([], [])
 #         plt.yticks([], [])
 
 #         if j == 0:
-#             plt.ylabel("Eps: {}".format(epsilons[i]), fontsize=14)
+#             ax.title.set_text("Eps: {}".format(epsilons[i]))
 #         if i == 0 and j == 0:
-#             ax.title.set_text('FGSM')  
-
+#             plt.ylabel('FGSM')
 #         if i == 0 and j == 1:  
-#             ax.title.set_text('PGD')
+#             plt.ylabel('BIM')
+#         if i == 0 and j == 2:  
+#             plt.ylabel('PGD')
         
-#         ex = examples[i][j]
+#         ex = examples[j][i]
+
 #         plt.imshow(ex[0], cmap="gray")
 
 
 # plt.tight_layout()
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample.png')
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new.png')
 
 # =======================================================
 
@@ -487,24 +510,13 @@ epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # epsilons = [0, .05, .1, .15, .2, .25, .3]
 
 # train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/fgsm_trained', 1, 'fgsm', 0.1)
-# train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/pgd_trained', 1, 'pgd', 0.1)
 
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
 # model.eval()
 
 # print("======== FGSM trained, test on FGSM test set ===========")
 # acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
-# print("Adversarial training using fgsm achieves an accuracy of: " + str(acc) + " on the FGSM test set.")
-# print("========================================================")
-# print()
-# print()
-
-
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
-# model.eval()
-# print("======== PGD trained, test on FGSM test set ===========")
-# acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
-# print("Adversarial training using pgd achieves an accuracy of: " + str(acc) + " .")
+# print("Adversarial training using FGSM testing on FGSM set achieves an accuracy of: " + str(acc) + " on the FGSM test set.")
 # print("========================================================")
 # print()
 # print()
@@ -514,50 +526,64 @@ epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 
 # print("======== FGSM trained, test on PGD test set ===========")
 # acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
-# print("Adversarial training using fgsm achieves an accuracy of: " + str(acc) + " on the PGD test set.")
+# print("Adversarial training using FGSM testing on PGD set achieves an accuracy of: " + str(acc) + " on the PGD test set.")
 # print("========================================================")
 # print()
 # print()
 
 
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
+# train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/pgd_trained', 1, 'pgd', 0.1)
+
+# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
 # model.eval()
 # print("======== PGD trained, test on FGSM test set ===========")
-# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
-# print("Adversarial training using pgd achieves an accuracy of: " + str(acc) + " .")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
+# print("Adversarial training using PGD testing on FGSM set achieves an accuracy of: " + str(acc) + " .")
 # print("========================================================")
 # print()
 # print()
 
 
+
+
+# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
+# model.eval()
+# print("======== PGD trained, test on PGD test set ===========")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
+# print("Adversarial training using PGD testing on PGD achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
+
+# ======================================= Experiment 1.2: train on adversarial test on clean =================
+# adv_train = True
+# train(epoch_num, model, train_loader, val_loader, 'experiment_1/all_adversarial/pgd_0.2', 1, 'pgd', 0.2)
+# normal_testing(model, device, test_loader)
+
 # ======================================= Experiment 2.2: compare epsilons ======================
-# accuracies = []
-# # Compare different epsilons
-# for i in range(0, 35, 5):
-#     train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/fgsm+pgd/fgsm+pgd_epsilon' + str(i/100), 1, 'fgsm', i/100)
-#     #model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
-#     model.eval()
-#     acc_list = []
-#     for j in range(0, 35, 5):
-#         acc, _ = adv_test(model, device, test_loader, j/100, 'pgd', 1)
-#         acc_list.append(round(acc, 4))
+accuracies = []
+# Compare different epsilons
+for i in range(0, 35, 5):
+    train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/pgd+fgsm/pgd+fgsm_epsilon' + str(i/100), 1, 'pgd', i/100)
+    #model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
+    model.eval()
+    acc_list = []
+    for j in range(0, 35, 5):
+        acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
+        acc_list.append(round(acc, 4))
     
-#     accuracies.append(acc_list)
-# print(accuracies)
+    accuracies.append(acc_list)
+print(accuracies)
 
 # FGSM+PGD:
-# [[0.9992, 0.7409, 0.4272, 0.3065, 0.2182, 0.1754, 0.1432], [0.9975, 0.9749, 0.8607, 0.6261, 0.4978, 0.4008, 0.3181], 
-# [0.9881, 0.9637, 0.9362, 0.8096, 0.5884, 0.4866, 0.4517], [0.9193, 0.7903, 0.9419, 0.9061, 0.6966, 0.4972, 0.4753], 
-# [0.8281, 0.6325, 0.785, 0.9088, 0.8057, 0.6333, 0.4664], [0.6422, 0.4322, 0.4581, 0.7942, 0.8912, 0.7518, 0.5799], [0.6027, 0.3628, 0.3593, 0.4604, 0.7723, 0.7758, 0.5618]]
-# Another one:
-# [[0.9982, 0.5944, 0.3214, 0.2016, 0.1502, 0.1059, 0.0575], [0.9988, 0.9656, 0.7802, 0.5217, 0.4307, 0.2873, 0.197], 
-# [0.9658, 0.945, 0.9287, 0.7765, 0.5421, 0.4698, 0.4044], [0.8132, 0.5957, 0.9185, 0.9016, 0.7818, 0.6114, 0.5043], 
-# [0.6891, 0.4993, 0.6632, 0.9061, 0.8316, 0.6612, 0.5443], [0.6397, 0.4375, 0.4656, 0.704, 0.9011, 0.7716, 0.5974], [0.5119, 0.3435, 0.3553, 0.4632, 0.7147, 0.8737, 0.7279]]
+# [[0.9982, 0.5576, 0.2392, 0.1712, 0.1457, 0.0381, 0.005], [0.9967, 0.9475, 0.6263, 0.4355, 0.2633, 0.1804, 0.1727], 
+# [0.9442, 0.9703, 0.8953, 0.5379, 0.4462, 0.3009, 0.2035], [0.8281, 0.7875, 0.9013, 0.5755, 0.4569, 0.3936, 0.2581], 
+# [0.7265, 0.511, 0.7997, 0.7145, 0.4069, 0.2771, 0.2718], [0.6091, 0.4056, 0.4591, 0.8259, 0.6415, 0.4332, 0.292], [0.6057, 0.4106, 0.3872, 0.4855, 0.7857, 0.5636, 0.3388]]
 
 # PGD+PGD:
-# [[0.9973, 0.4659, 0.1721, 0.1184, 0.1216, 0.0743, 0.0276], [0.9945, 0.942, 0.6968, 0.5063, 0.3974, 0.2793, 0.2003], 
-# [0.9878, 0.9522, 0.8964, 0.7822, 0.6266, 0.5331, 0.4237], [0.989, 0.9561, 0.9175, 0.8612, 0.7708, 0.6315, 0.5057], 
-# [0.984, 0.9479, 0.9145, 0.8774, 0.8212, 0.7339, 0.5937], [0.6549, 0.6024, 0.5693, 0.6173, 0.8912, 0.8174, 0.6253], [0.5241, 0.4734, 0.4619, 0.4537, 0.639, 0.921, 0.8106]]       
+# [[0.9985, 0.5521, 0.2259, 0.1702, 0.0762, 0.0057, 0.0286], [0.9926, 0.9452, 0.6888, 0.442, 0.2618, 0.1893, 0.1727], 
+# [0.9774, 0.9359, 0.8867, 0.7305, 0.5461, 0.4387, 0.3329], [0.9773, 0.9437, 0.8951, 0.8131, 0.7095, 0.5416, 0.361], 
+# [0.9556, 0.9145, 0.8724, 0.8228, 0.7604, 0.6811, 0.5212], [0.9208, 0.8901, 0.8598, 0.8336, 0.8034, 0.7594, 0.6808], [0.9262, 0.8963, 0.8717, 0.8393, 0.7952, 0.7427, 0.6679]]     
 
 # PGD+FGSM:
 # [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
@@ -677,21 +703,21 @@ sixth = [27.347143334447043, 27.51419979953224, 24.94153023722018, 31.4901436685
 #     accuracies.append(acc * 100)
 # print(accuracies)
 
-percentages = [i for i in range(0, 110, 10)]
-plt.figure(figsize=(5,5))
-plt.plot(percentages, first, "*-", label='0.1, 0.05')
-plt.plot(percentages, second, "*-", label='0.15, 0.1')
-plt.plot(percentages, third, "*-", label='0.2, 0.15')
-plt.plot(percentages, fourth, "*-", label='0.2, 0.2')
-plt.plot(percentages, fifth, "*-", label='0.25, 0.25')
-plt.plot(percentages, sixth, "*-", label='0.3, 0.3')
-plt.legend()
-plt.yticks(np.arange(0, 110, step=10))
-plt.xticks(np.arange(0, 110, step=10))
-plt.title("Accuracy vs Percentage")
-plt.xlabel("Number(%) of adversarial images in training set")
-plt.ylabel("Accuracy(%)")
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage.png')
+# percentages = [i for i in range(0, 110, 10)]
+# plt.figure(figsize=(5,5))
+# plt.plot(percentages, first, "*-", label='0.1, 0.05')
+# plt.plot(percentages, second, "*-", label='0.15, 0.1')
+# plt.plot(percentages, third, "*-", label='0.2, 0.15')
+# plt.plot(percentages, fourth, "*-", label='0.2, 0.2')
+# plt.plot(percentages, fifth, "*-", label='0.25, 0.25')
+# plt.plot(percentages, sixth, "*-", label='0.3, 0.3')
+# plt.legend()
+# plt.yticks(np.arange(0, 110, step=10))
+# plt.xticks(np.arange(0, 110, step=10))
+# plt.title("Accuracy vs Percentage")
+# plt.xlabel("Number(%) of adversarial images in training set")
+# plt.ylabel("Accuracy(%)")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage.png')
 
 ########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
 # adv_train = True
