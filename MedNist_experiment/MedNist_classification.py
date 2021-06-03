@@ -386,13 +386,13 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
     # print("=============")
 
-    # from sklearn.metrics import classification_report, confusion_matrix
-    # print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
-    # cm = confusion_matrix(y_true, y_pred)
-    # cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    # print(cm.diagonal())
+    from sklearn.metrics import classification_report, confusion_matrix
+    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+    cm = confusion_matrix(y_true, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    print(cm.diagonal())
 
-    # print("=============")
+    print("=============")
 
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
@@ -417,6 +417,55 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 # normal_testing(model, device, test_loader)
 # adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
+
+# normal = [99, 100, 99, 100, 99, 99]
+# adv = [7.8, 0, 17.8, 98.1, 84.6, 4.8]
+
+# x = np.arange(len(class_names))  # the label locations
+# width = 0.35  # the width of the bars
+
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - width/2, normal, width, label='Normal test')
+# rects2 = ax.bar(x + width/2, adv, width, label='Adversarial test')
+
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Accuracy of model(%)')
+# ax.set_title('Accuracy comparison per class')
+# ax.set_xticks(x)
+# ax.set_xticklabels(class_names)
+# ax.legend()
+
+# # ax.bar_label(rects1, padding=3)
+# # ax.bar_label(rects2, padding=3)
+
+# fig.tight_layout()
+
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/performance_comparison_bar.png')
+# normal = [99.78, 99.78, 99.78, 99.78]
+# adv = [50.2, 35.73, 25.04, 35.73]
+
+# labels = ['Precision', 'Recall', 'F1-score', 'Accuracy']
+
+# x = np.arange(len(labels))  # the label locations
+# width = 0.35  # the width of the bars
+
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - width/4, normal, width, label='Normal test')
+# rects2 = ax.bar(x + width/4, adv, width, label='Adversarial test')
+
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Percentage(%)')
+# ax.set_title('Overall performance comparison')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels)
+# ax.legend()
+
+# # ax.bar_label(rects1, padding=3)
+# # ax.bar_label(rects2, padding=3)
+
+# fig.tight_layout()
+
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/overall_comparison_bar.png')
 
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
@@ -507,7 +556,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # Compare the accuracy of fgsm-attack-trained model and pgd-attack-trained model
 # adv_train = True
 # accuracies = []
-# epsilons = [0, .05, .1, .15, .2, .25, .3]
+epsilons = [0, .05, .1, .15, .2, .25, .3]
 
 # train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/fgsm_trained', 1, 'fgsm', 0.1)
 
@@ -560,35 +609,132 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # train(epoch_num, model, train_loader, val_loader, 'experiment_1/all_adversarial/pgd_0.2', 1, 'pgd', 0.2)
 # normal_testing(model, device, test_loader)
 
+
+# normal = [50.22, 35.73, 25.04, 35.73]
+# adv = [94.58, 94.05, 94.09, 94.05]
+# labels = ['Precision','Recall', 'F1-score', 'Accuracy']
+# x = np.arange(len(labels))  # the label locations
+# width = 0.35  # the width of the bars
+
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - width/2, normal, width, label='Standard')
+# rects2 = ax.bar(x + width/2, adv, width, label='FGSM-trained')
+
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Performance of the models(%)')
+# ax.set_title('Standard/FGSM-trained model against same test set')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels)
+# ax.legend()
+
+# # ax.bar_label(rects1, padding=3)
+# # ax.bar_label(rects2, padding=3)
+
+# fig.tight_layout()
+
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_comparison.png')
+
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
+# model.eval()
+# adv_test(model, device, test_loader, 0.1, 'pgd', 1)
+
+# normal = [26.12, 25.01, 14.26, 25.01]
+# adv = [90.84, 90.46, 90.5, 90.46]
+# labels = ['Precision','Recall', 'F1-score', 'Accuracy']
+# x = np.arange(len(labels))  # the label locations
+# width = 0.35  # the width of the bars
+
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - width/2, normal, width, label='Standard')
+# rects2 = ax.bar(x + width/2, adv, width, label='PGD-trained')
+
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Performance of the models(%)')
+# ax.set_title('Standard/PGD-trained model against same test set')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels)
+# ax.legend()
+
+# # ax.bar_label(rects1, padding=3)
+# # ax.bar_label(rects2, padding=3)
+
+# fig.tight_layout()
+
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_comparison.png')
+
+
+
 # ======================================= Experiment 2.2: compare epsilons ======================
-accuracies = []
-# Compare different epsilons
-for i in range(0, 35, 5):
-    train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/pgd+fgsm/pgd+fgsm_epsilon' + str(i/100), 1, 'pgd', i/100)
-    #model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm_epsilon' + str(i/100) + '.pth'))
-    model.eval()
-    acc_list = []
-    for j in range(0, 35, 5):
-        acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
-        acc_list.append(round(acc, 4))
+# accuracies = []
+# # Compare different epsilons
+# for i in range(0, 35, 5):
+#     # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/pgd+fgsm/pgd+fgsm_epsilon' + str(i/100), 1, 'pgd', i/100)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm+fgsm/fgsm_epsilon' + str(i/100) + '.pth'))
+#     model.eval()
+#     acc_list = []
+#     for j in range(0, 35, 5):
+#         acc, _ = adv_test(model, device, test_loader, j/100, 'fgsm', 1)
+#         acc_list.append(round(acc, 4))
     
-    accuracies.append(acc_list)
-print(accuracies)
+#     accuracies.append(acc_list)
+# print(accuracies)
+
+
+mean1, mean2, mean3 = [], [], []
+# FGSM+FGSM:
+fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
+[0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
+[0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
+
+best = [[0.0, 0.10, 0.15, 0.20, 0.20, 0.25, 0.3], [0.0, 0.1, 0.15, 0.25, 0.3, 0.3, 0.3], [0.0,0.05, 0.15, 0.3, 0.25, 0.25, 0.25], [0.0, 0.15, 0.20,0.20, 0.20, 0.20, 0.20]]
+labels = ['FGSM+FGSM', 'FGSM+PGD', 'PGD+PGD', 'PGD+FGSM']
+
+plt.figure(figsize=(5,5))
+for i in range(4):
+    plt.plot(epsilons, best[i], "*-", label=labels[i])
+
+plt.legend()
+plt.yticks(np.arange(0, 0.35, step=0.05))
+plt.xticks(np.arange(0, .35, step=0.05))
+plt.title("Relationships between training and testing epsilons")
+plt.xlabel("Attack epsilon")
+plt.ylabel("Best training epsilon")
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm+fgsm/ep_comparison.png')
+
+
+
+
+
+
 
 # FGSM+PGD:
-# [[0.9982, 0.5576, 0.2392, 0.1712, 0.1457, 0.0381, 0.005], [0.9967, 0.9475, 0.6263, 0.4355, 0.2633, 0.1804, 0.1727], 
-# [0.9442, 0.9703, 0.8953, 0.5379, 0.4462, 0.3009, 0.2035], [0.8281, 0.7875, 0.9013, 0.5755, 0.4569, 0.3936, 0.2581], 
-# [0.7265, 0.511, 0.7997, 0.7145, 0.4069, 0.2771, 0.2718], [0.6091, 0.4056, 0.4591, 0.8259, 0.6415, 0.4332, 0.292], [0.6057, 0.4106, 0.3872, 0.4855, 0.7857, 0.5636, 0.3388]]
+fgsm_pgd = [[0.9982, 0.5576, 0.2392, 0.1712, 0.1457, 0.0381, 0.005], [0.9967, 0.9475, 0.6263, 0.4355, 0.2633, 0.1804, 0.1727], 
+[0.9442, 0.9703, 0.8953, 0.5379, 0.4462, 0.3009, 0.2035], [0.8281, 0.7875, 0.9013, 0.5755, 0.4569, 0.3936, 0.2581], 
+[0.7265, 0.511, 0.7997, 0.7145, 0.4069, 0.2771, 0.2718], [0.6091, 0.4056, 0.4591, 0.8259, 0.6415, 0.4332, 0.292], [0.6057, 0.4106, 0.3872, 0.4855, 0.7857, 0.5636, 0.3388]]
+
+fgsm_pgd_t = np.array(fgsm_pgd).transpose()
 
 # PGD+PGD:
-# [[0.9985, 0.5521, 0.2259, 0.1702, 0.0762, 0.0057, 0.0286], [0.9926, 0.9452, 0.6888, 0.442, 0.2618, 0.1893, 0.1727], 
-# [0.9774, 0.9359, 0.8867, 0.7305, 0.5461, 0.4387, 0.3329], [0.9773, 0.9437, 0.8951, 0.8131, 0.7095, 0.5416, 0.361], 
-# [0.9556, 0.9145, 0.8724, 0.8228, 0.7604, 0.6811, 0.5212], [0.9208, 0.8901, 0.8598, 0.8336, 0.8034, 0.7594, 0.6808], [0.9262, 0.8963, 0.8717, 0.8393, 0.7952, 0.7427, 0.6679]]     
+pgd_pgd = [[0.9985, 0.5521, 0.2259, 0.1702, 0.0762, 0.0057, 0.0286], [0.9926, 0.9452, 0.6888, 0.442, 0.2618, 0.1893, 0.1727], 
+[0.9774, 0.9359, 0.8867, 0.7305, 0.5461, 0.4387, 0.3329], [0.9773, 0.9437, 0.8951, 0.8131, 0.7095, 0.5416, 0.361], 
+[0.9556, 0.9145, 0.8724, 0.8228, 0.7604, 0.6811, 0.5212], [0.9208, 0.8901, 0.8598, 0.8336, 0.8034, 0.7594, 0.6808], [0.9262, 0.8963, 0.8717, 0.8393, 0.7952, 0.7427, 0.6679]]     
+
+pgd_pgd_t = np.array(pgd_pgd).transpose()
 
 # PGD+FGSM:
-# [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
-# [0.9853, 0.9644, 0.9405, 0.9021, 0.8403, 0.7147, 0.5605], [0.9818, 0.9574, 0.9526, 0.9415, 0.9238, 0.8801, 0.8004], 
-# [0.5778, 0.5052, 0.4901, 0.7165, 0.7668, 0.7469, 0.6848], [0.5436, 0.4749, 0.4641, 0.4901, 0.6497, 0.6488, 0.5989]]
+pgd_fgsm = [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
+[0.9853, 0.9644, 0.9405, 0.9021, 0.8403, 0.7147, 0.5605], [0.9818, 0.9574, 0.9526, 0.9415, 0.9238, 0.8801, 0.8004], 
+[0.5778, 0.5052, 0.4901, 0.7165, 0.7668, 0.7469, 0.6848], [0.5436, 0.4749, 0.4641, 0.4901, 0.6497, 0.6488, 0.5989]]
+pgd_fgsm_t = np.array(pgd_fgsm).transpose()
+
+
+
+
+for l in pgd_pgd:
+    mean2.append(np.average(l))
+for l in pgd_fgsm:
+    mean3.append(np.average(l))
+
 
 # fig, ax = plt.subplots()
 # rows, cols = [str(i/100) for i in range(0, 35, 5)], [str(i/100) for i in range(0, 35, 5)]
