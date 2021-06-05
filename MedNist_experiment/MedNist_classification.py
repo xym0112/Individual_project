@@ -22,7 +22,7 @@ torch.manual_seed(0)
 random.seed(0)
 #torch.use_deterministic_algorithms(True)
 
-batch_size = 64
+batch_size = 199
 USE_CUDA = True
 epoch_num = 5
 val_interval = 1
@@ -336,6 +336,9 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
     y_true  = list()
     y_pred = list()
 
+    acc = {0: 0, 1:0, 2:0, 3:0, 4:0, 5:0}
+    class_num = [1039, 910, 987, 1033, 967, 1050]
+
     for i, (data, target) in enumerate(test_loader):
         data, target = data.to(device), target.to(device)
         data.requires_grad = True
@@ -373,6 +376,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
         for i in range(len(target)):
             if final_pred[i].item() == target[i].item():
                 correct += 1
+                acc[final_pred[i].item()] += 1
             else:
                 if i == 0:
                     adv_ex = perturbed_data[i].squeeze().detach().cpu().numpy()
@@ -384,15 +388,18 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
     final_acc = correct/len(testX)
     print("Epsilon: {}\tTest Accuracy = {} / {} = {}".format(epsilon, correct, len(testX), final_acc))
 
-    # print("=============")
-
-    from sklearn.metrics import classification_report, confusion_matrix
-    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
-    cm = confusion_matrix(y_true, y_pred)
-    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    print(cm.diagonal())
-
     print("=============")
+
+    # from sklearn.metrics import classification_report, confusion_matrix
+    # print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+
+    # print(confusion_matrix(y_true, y_pred))
+    
+    # for i in range(6):
+    #     acc[i] = acc[i] / class_num[i]
+    # print(acc)
+
+    # print("=============")
 
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
@@ -412,8 +419,8 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/normal_example.png')
 # adv_train = False
 # #train(epoch_num, model, train_loader, val_loader, 'Normally_trained')
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
-# model.eval()
+model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
+model.eval()
 
 # normal_testing(model, device, test_loader)
 # adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
@@ -469,25 +476,28 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
-# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # #  
-# examples = [[] for i in range(len(epsilons))]
+examples = [[] for i in range(len(epsilons))]
 # accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
 # for i in range(len(epsilons)):
 #     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
 #     accuracies_fgsm.append(acc)
-#     examples[i].append(ex[0])
+#     #examples[i].append(ex[0])
 
 #     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim', 1)
 #     accuracies_bim.append(acc)
-#     examples[i].append(ex[0])
+#     #examples[i].append(ex[0])
 
 #     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
 #     accuracies_pgd.append(acc)
-#     examples[i].append(ex[0])
+#     #examples[i].append(ex[0])
 
 #     print("================================================")
 
+accuracies_fgsm = [0.998329435349148, 0.9485466087537587, 0.644503842298697, 0.36618777146675574, 0.29836284664216506, 0.18392916805880388, 0.1506849315068493, 0.1506849315068493]
+accuracies_bim = [0.998329435349148, 0.958904109589041, 0.5962245238890745, 0.3504844637487471, 0.2216839291680588, 0.11693952555963916, 0.08002004677581022, 0.0982292014700969]
+accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.24757768125626461, 0.07801536919478784, 0.06064149682592716, 0.09188105579685933, 0.12245238890745072]
 
 # plt.figure(figsize=(5,5))
 # plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
@@ -505,7 +515,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 # Examples of each attack
 # cnt = 0
-# fig = plt.figure()
+# fig = plt.figure(figsize=(6, 3))
 # fig.suptitle("Examples of adversarial images", fontsize=16)
 # sample = next(iter(test_loader))
 # data, target = sample[0].to(device), sample[1].to(device)
@@ -534,7 +544,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 #         plt.yticks([], [])
 
 #         if j == 0:
-#             ax.title.set_text("Eps: {}".format(epsilons[i]))
+#             ax.title.set_text(epsilons[i])
 #         if i == 0 and j == 0:
 #             plt.ylabel('FGSM')
 #         if i == 0 and j == 1:  
@@ -547,9 +557,36 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 #         plt.imshow(ex[0], cmap="gray")
 
 
-# plt.tight_layout()
+# plt.tight_layout(pad=1.0)
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new.png')
 
+
+# Close up comparison between two images
+cnt = 0
+fig = plt.figure(figsize=(6, 3))
+fig.suptitle("Comparison between clean and adversarial images", fontsize=16)
+sample = next(iter(test_loader))
+data, target = sample[0].to(device), sample[1].to(device)
+
+data.requires_grad = True
+output = model(data)
+_, init_pred = output.max(1)
+
+loss = F.nll_loss(output, target)
+model.zero_grad()
+loss.backward()
+
+data_grad = data.grad.data
+adv_ex = fgsm_attack(data, 0.1, data_grad).squeeze().detach().cpu().numpy()
+
+plt.subplot(1, 2, 1)
+plt.imshow(data[0].squeeze().detach().cpu().numpy(), cmap="gray")
+
+plt.subplot(1, 2, 2)
+plt.imshow(adv_ex[0], cmap="gray")
+
+# plt.tight_layout(pad=1.0)
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/epsilons/close_up.png')
 # =======================================================
 
 ########## Experiment 2.1: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
@@ -680,60 +717,60 @@ epsilons = [0, .05, .1, .15, .2, .25, .3]
 # print(accuracies)
 
 
-mean1, mean2, mean3 = [], [], []
-# FGSM+FGSM:
-fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
-[0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
-[0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
+# mean1, mean2, mean3 = [], [], []
+# # FGSM+FGSM:
+# fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
+# [0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
+# [0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
 
-best = [[0.0, 0.10, 0.15, 0.20, 0.20, 0.25, 0.3], [0.0, 0.1, 0.15, 0.25, 0.3, 0.3, 0.3], [0.0,0.05, 0.15, 0.3, 0.25, 0.25, 0.25], [0.0, 0.15, 0.20,0.20, 0.20, 0.20, 0.20]]
-labels = ['FGSM+FGSM', 'FGSM+PGD', 'PGD+PGD', 'PGD+FGSM']
+# best = [[0.0, 0.10, 0.15, 0.20, 0.20, 0.25, 0.3], [0.0, 0.1, 0.15, 0.25, 0.3, 0.3, 0.3], [0.0,0.05, 0.15, 0.3, 0.25, 0.25, 0.25], [0.0, 0.15, 0.20,0.20, 0.20, 0.20, 0.20]]
+# labels = ['FGSM+FGSM', 'FGSM+PGD', 'PGD+PGD', 'PGD+FGSM']
 
-plt.figure(figsize=(5,5))
-for i in range(4):
-    plt.plot(epsilons, best[i], "*-", label=labels[i])
+# plt.figure(figsize=(5,5))
+# for i in range(4):
+#     plt.plot(epsilons, best[i], "*-", label=labels[i])
 
-plt.legend()
-plt.yticks(np.arange(0, 0.35, step=0.05))
-plt.xticks(np.arange(0, .35, step=0.05))
-plt.title("Relationships between training and testing epsilons")
-plt.xlabel("Attack epsilon")
-plt.ylabel("Best training epsilon")
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm+fgsm/ep_comparison.png')
-
-
+# plt.legend()
+# plt.yticks(np.arange(0, 0.35, step=0.05))
+# plt.xticks(np.arange(0, .35, step=0.05))
+# plt.title("Relationships between training and testing epsilons")
+# plt.xlabel("Attack epsilon")
+# plt.ylabel("Best training epsilon")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm+fgsm/ep_comparison.png')
 
 
 
 
 
-# FGSM+PGD:
-fgsm_pgd = [[0.9982, 0.5576, 0.2392, 0.1712, 0.1457, 0.0381, 0.005], [0.9967, 0.9475, 0.6263, 0.4355, 0.2633, 0.1804, 0.1727], 
-[0.9442, 0.9703, 0.8953, 0.5379, 0.4462, 0.3009, 0.2035], [0.8281, 0.7875, 0.9013, 0.5755, 0.4569, 0.3936, 0.2581], 
-[0.7265, 0.511, 0.7997, 0.7145, 0.4069, 0.2771, 0.2718], [0.6091, 0.4056, 0.4591, 0.8259, 0.6415, 0.4332, 0.292], [0.6057, 0.4106, 0.3872, 0.4855, 0.7857, 0.5636, 0.3388]]
-
-fgsm_pgd_t = np.array(fgsm_pgd).transpose()
-
-# PGD+PGD:
-pgd_pgd = [[0.9985, 0.5521, 0.2259, 0.1702, 0.0762, 0.0057, 0.0286], [0.9926, 0.9452, 0.6888, 0.442, 0.2618, 0.1893, 0.1727], 
-[0.9774, 0.9359, 0.8867, 0.7305, 0.5461, 0.4387, 0.3329], [0.9773, 0.9437, 0.8951, 0.8131, 0.7095, 0.5416, 0.361], 
-[0.9556, 0.9145, 0.8724, 0.8228, 0.7604, 0.6811, 0.5212], [0.9208, 0.8901, 0.8598, 0.8336, 0.8034, 0.7594, 0.6808], [0.9262, 0.8963, 0.8717, 0.8393, 0.7952, 0.7427, 0.6679]]     
-
-pgd_pgd_t = np.array(pgd_pgd).transpose()
-
-# PGD+FGSM:
-pgd_fgsm = [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
-[0.9853, 0.9644, 0.9405, 0.9021, 0.8403, 0.7147, 0.5605], [0.9818, 0.9574, 0.9526, 0.9415, 0.9238, 0.8801, 0.8004], 
-[0.5778, 0.5052, 0.4901, 0.7165, 0.7668, 0.7469, 0.6848], [0.5436, 0.4749, 0.4641, 0.4901, 0.6497, 0.6488, 0.5989]]
-pgd_fgsm_t = np.array(pgd_fgsm).transpose()
 
 
+# # FGSM+PGD:
+# fgsm_pgd = [[0.9982, 0.5576, 0.2392, 0.1712, 0.1457, 0.0381, 0.005], [0.9967, 0.9475, 0.6263, 0.4355, 0.2633, 0.1804, 0.1727], 
+# [0.9442, 0.9703, 0.8953, 0.5379, 0.4462, 0.3009, 0.2035], [0.8281, 0.7875, 0.9013, 0.5755, 0.4569, 0.3936, 0.2581], 
+# [0.7265, 0.511, 0.7997, 0.7145, 0.4069, 0.2771, 0.2718], [0.6091, 0.4056, 0.4591, 0.8259, 0.6415, 0.4332, 0.292], [0.6057, 0.4106, 0.3872, 0.4855, 0.7857, 0.5636, 0.3388]]
+
+# fgsm_pgd_t = np.array(fgsm_pgd).transpose()
+
+# # PGD+PGD:
+# pgd_pgd = [[0.9985, 0.5521, 0.2259, 0.1702, 0.0762, 0.0057, 0.0286], [0.9926, 0.9452, 0.6888, 0.442, 0.2618, 0.1893, 0.1727], 
+# [0.9774, 0.9359, 0.8867, 0.7305, 0.5461, 0.4387, 0.3329], [0.9773, 0.9437, 0.8951, 0.8131, 0.7095, 0.5416, 0.361], 
+# [0.9556, 0.9145, 0.8724, 0.8228, 0.7604, 0.6811, 0.5212], [0.9208, 0.8901, 0.8598, 0.8336, 0.8034, 0.7594, 0.6808], [0.9262, 0.8963, 0.8717, 0.8393, 0.7952, 0.7427, 0.6679]]     
+
+# pgd_pgd_t = np.array(pgd_pgd).transpose()
+
+# # PGD+FGSM:
+# pgd_fgsm = [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
+# [0.9853, 0.9644, 0.9405, 0.9021, 0.8403, 0.7147, 0.5605], [0.9818, 0.9574, 0.9526, 0.9415, 0.9238, 0.8801, 0.8004], 
+# [0.5778, 0.5052, 0.4901, 0.7165, 0.7668, 0.7469, 0.6848], [0.5436, 0.4749, 0.4641, 0.4901, 0.6497, 0.6488, 0.5989]]
+# pgd_fgsm_t = np.array(pgd_fgsm).transpose()
 
 
-for l in pgd_pgd:
-    mean2.append(np.average(l))
-for l in pgd_fgsm:
-    mean3.append(np.average(l))
+
+
+# for l in pgd_pgd:
+#     mean2.append(np.average(l))
+# for l in pgd_fgsm:
+#     mean3.append(np.average(l))
 
 
 # fig, ax = plt.subplots()
@@ -822,33 +859,51 @@ for l in pgd_fgsm:
 # Pick the best situation: 0.1 in training and 0.05 in testing
 # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% FGSM-adversarially pertubated test set
 
-# 0.1+0.05
-first = [64.80120280654862, 89.05780153691948, 94.13631807550952, 97.22686267958571, 98.14567323755429, 98.44637487470766, 98.42966922819913, 98.64684263280989, 99.26495155362512, 99.3317741396592, 98.52990310725025]
+# # 0.1+0.05
+# first = [64.80120280654862, 89.05780153691948, 94.13631807550952, 97.22686267958571, 98.14567323755429, 98.44637487470766, 98.42966922819913, 98.64684263280989, 99.26495155362512, 99.3317741396592, 98.52990310725025]
 
-# 0.15 + 0.1
-second = [37.253591713999334, 58.820581356498494, 61.142666221182765, 61.69395255596392, 64.75108586702305, 70.13030404276645, 77.24690945539592, 81.94119612429, 83.92916805880387, 84.76445038422987, 98.94754426996325]
+# # 0.15 + 0.1
+# second = [37.253591713999334, 58.820581356498494, 61.142666221182765, 61.69395255596392, 64.75108586702305, 70.13030404276645, 77.24690945539592, 81.94119612429, 83.92916805880387, 84.76445038422987, 98.94754426996325]
 
-# 0.2+0.15
-third = [20.748412963581693, 48.27931840962245, 51.13598396257936, 49.86635482793184, 49.9164717674574, 51.06916137654527, 51.33645172068159, 52.42231874373539, 56.615436017373874, 56.76578683595055, 91.88105579685933]
+# # 0.2+0.15
+# third = [20.748412963581693, 48.27931840962245, 51.13598396257936, 49.86635482793184, 49.9164717674574, 51.06916137654527, 51.33645172068159, 52.42231874373539, 56.615436017373874, 56.76578683595055, 91.88105579685933]
 
-# 0.2+0.2
-fourth = [19.011025726695625, 22.55262278650184, 26.962913464751086, 32.626127631139326, 31.256264617440692, 33.21082525893752, 36.28466421650518, 41.179418643501506, 41.11259605746743, 37.48747076511861, 87.9886401603742]
-# 0.25+0.25
-fifth = [23.838957567657868, 28.08219178082192, 30.437687938523222, 31.506849315068493, 31.70731707317073, 28.733711994654193, 20.414300033411294, 17.858336117607752, 20.063481456732376, 16.321416638823923, 79.03441363180755]
-# 0.3+0.3
-sixth = [27.347143334447043, 27.51419979953224, 24.94153023722018, 31.490143668559973, 31.60708319411961, 30.47109923154026, 24.189776144336786, 16.60541262946876, 28.98429669228199, 16.271299699298364, 69.7460741730705]
+# # 0.2+0.2
+# fourth = [19.011025726695625, 22.55262278650184, 26.962913464751086, 32.626127631139326, 31.256264617440692, 33.21082525893752, 36.28466421650518, 41.179418643501506, 41.11259605746743, 37.48747076511861, 87.9886401603742]
+# # 0.25+0.25
+# fifth = [23.838957567657868, 28.08219178082192, 30.437687938523222, 31.506849315068493, 31.70731707317073, 28.733711994654193, 20.414300033411294, 17.858336117607752, 20.063481456732376, 16.321416638823923, 79.03441363180755]
+# # 0.3+0.3
+# sixth = [27.347143334447043, 27.51419979953224, 24.94153023722018, 31.490143668559973, 31.60708319411961, 30.47109923154026, 24.189776144336786, 16.60541262946876, 28.98429669228199, 16.271299699298364, 69.7460741730705]
+
+#############
+########### 50% ###############
 
 # percentages = [i/10 for i in range(0, 11)]
 # accuracies = []
+
 # for percentage in percentages:
-#     train(epoch_num, model, train_loader, val_loader, 'experiment_2/how_much_adv_help/0.3+0.3/Adversarially_trained_' + str(percentage), percentage, 'fgsm', 0.3)
-#     # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/0.1+0.05/Adversarially_trained_' + str(percentage) + '.pth'))
+#     # train(epoch_num, model, train_loader, val_loader, 'experiment_2/how_much_adv_help/0.1+0.05/Adversarially_trained_' + str(percentage), percentage, 'fgsm', train_ep)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/0.3+0.3/Adversarially_trained_' + str(percentage) + '.pth'))
 #     model.eval()
-#     acc, _ = adv_test(model, device, test_loader, 0.3, 'fgsm', 1)
-#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+#     acc, _ = adv_test(model, device, test_loader, 0.3, 'fgsm', 0.5)
+#     print("With percentage: " + str(percentage) + " of adversarial training tested on a 100% perturbed test set it achieves accuracy of: " + str(acc) + " .")
 #     accuracies.append(acc * 100)
 # print(accuracies)
 
+full_1 = [74.0227196792516, 85.98396257935183, 90.2439024390244, 92.04811226194454, 98.36284664216505, 98.44637487470766, 98.79719345138656, 98.86401603742064, 99.43200801871032, 99.51553625125293, 98.5800200467758]
+full_2 = [41.22953558302706, 58.93752088205814, 62.04477113264283, 62.89675910457735, 61.493484797861676, 64.96825927163381, 62.19512195121951, 66.33812228533245, 63.48145673237554, 72.20180420982291, 98.96424991647177]
+full_3 = [21.500167056465084, 37.33711994654193, 45.07183427998663, 44.83795522886736, 48.19579017707985, 50.15035081857668, 50.501169395255594, 56.866020715001675, 53.74206481790845, 52.42231874373539, 98.41296358169062]
+full_4 = [46.191112596057465, 46.174406949548946, 46.174406949548946, 47.978616772469096, 47.343802205145344, 45.07183427998663, 46.174406949548946, 46.99298362846642, 43.60173738723689, 48.14567323755429, 92.84998329435349]
+full_5 = [39.54226528566656, 37.53758770464417, 38.823922485800196, 41.56364851319746, 40.22719679251587, 35.56632141663882, 35.666555295689946, 36.3848980955563, 35.78349482124958, 42.449047778149016, 90.99565653190778]
+full_6 = [32.993651854326764, 33.22753090544604, 32.75977280320748, 29.35182091546943, 33.06047444036084, 32.659538924156365, 30.437687938523222, 32.19178082191781, 34.51386568660207, 44.336785833611756, 90.11025726695622]
+
+
+half_1 = [78.86735716672236, 89.04109589041096, 91.71399933177415, 93.35115268960908, 98.79719345138656, 98.8306047444036, 99.0811894420314, 97.44403608419645, 97.69462078182426, 98.09555629802873, 97.32709655863681]
+half_2 = [60.30738389575676, 68.19244904777815, 69.1613765452723, 69.2449047778149, 69.61242900100234, 70.53123955897094, 69.8296024056131, 71.50016705646507, 69.89642499164718, 76.49515536251253, 89.64249916471768]
+half_3 = [51.18610090210491, 56.33144002672903, 63.39792849983294, 65.92048112261945, 64.1997995322419, 66.43835616438356, 66.90611426662213, 66.93952555963915, 67.0564650851988, 66.20447711326428, 85.66655529568993]
+half_4 = [63.665218843969264, 63.79886401603741, 64.26662211827598, 65.51954560641497, 64.65085198797193, 62.84664216505179, 64.98496491814232, 65.13531573671901, 61.81089208152355, 65.18543267624457, 80.10357500835282]
+half_5 = [57.9017707985299, 55.49615770130304, 57.584363514868016, 61.69395255596392, 60.49114600735048, 55.34580688272636, 55.763448045439354, 56.71566989642499, 56.2145005011694, 63.782158369528894, 71.73404610758436]
+half_6 = [51.50350818576679, 51.08586702305379, 50.785165385900434, 49.7494153023722, 51.15268960908787, 51.620447711326435, 50.81857667891747, 50.9188105579686, 52.38890745071835, 63.347811560307385, 69.56231206147679]
 # percentages = [i for i in range(0, 110, 10)]
 # plt.figure(figsize=(5,5))
 # plt.plot(percentages, first, "*-", label='0.1, 0.05')
