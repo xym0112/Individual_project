@@ -474,7 +474,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
-# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # # #  
 # examples = [[] for i in range(len(epsilons))]
 # accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
@@ -639,36 +639,36 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # print()
 # print()
 
-FGSM_FGSM = [94.58, 94.05, 94.09, 94.05] 
-FGSM_PGD = [83.83, 79.30, 78.92, 79.30]
-PGD_PGD = [90.84, 90.46, 90.50, 90.46]
-PGD_FGSM = [88.65, 86.33, 85.52, 86.33]
+# FGSM_FGSM = [94.58, 94.05, 94.09, 94.05] 
+# FGSM_PGD = [83.83, 79.30, 78.92, 79.30]
+# PGD_PGD = [90.84, 90.46, 90.50, 90.46]
+# PGD_FGSM = [88.65, 86.33, 85.52, 86.33]
 
-labels = ['Precision', 'Recall', 'F1-score', 'Accuracy']
+# labels = ['Precision', 'Recall', 'F1-score', 'Accuracy']
 
-x = np.arange(len(labels))  # the label locations
-width = 0.2  # the width of the bars
+# x = np.arange(len(labels))  # the label locations
+# width = 0.2  # the width of the bars
 
-fig, ax = plt.subplots()
-rects1 = ax.bar(x - 0.3, FGSM_FGSM, width, label='FGSM+FGSM', color='midnightblue')
-rects2 = ax.bar(x - 0.1, FGSM_PGD, width, label='FGSM+PGD', color='royalblue')
-rects3 = ax.bar(x + 0.1, PGD_PGD, width, label='PGD+PGD', color='cornflowerblue')
-rects4 = ax.bar(x + 0.3, PGD_FGSM, width, label='PGD+FGSM', color='lightsteelblue')
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - 0.3, FGSM_FGSM, width, label='FGSM+FGSM', color='midnightblue')
+# rects2 = ax.bar(x - 0.1, FGSM_PGD, width, label='FGSM+PGD', color='royalblue')
+# rects3 = ax.bar(x + 0.1, PGD_PGD, width, label='PGD+PGD', color='cornflowerblue')
+# rects4 = ax.bar(x + 0.3, PGD_FGSM, width, label='PGD+FGSM', color='lightsteelblue')
 
-# Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Percentage(%)')
-ax.set_title('Overall transferabilty performance')
-ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend()
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Percentage(%)')
+# ax.set_title('Overall transferabilty performance')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels)
+# ax.legend()
 
-# ax.bar_label(rects1, padding=3)
-# ax.bar_label(rects2, padding=3)
+# # ax.bar_label(rects1, padding=3)
+# # ax.bar_label(rects2, padding=3)
 
-fig.tight_layout()
+# fig.tight_layout()
 
 
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/transfer_bar.png')
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/transfer_bar.png')
 
 # ======================================= Experiment 1.2: train on adversarial test on clean =================
 # adv_train = True
@@ -732,6 +732,7 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 
 # ======================================= Experiment 2.2: compare epsilons ======================
 # accuracies = []
+epsilons = [i/100 for i in range(0, 35, 5)]
 # # Compare different epsilons
 # for i in range(0, 35, 5):
 #     # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/pgd+fgsm/pgd+fgsm_epsilon' + str(i/100), 1, 'pgd', i/100)
@@ -748,10 +749,11 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 
 # mean1, mean2, mean3 = [], [], []
 # # FGSM+FGSM:
-# fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
-# [0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
-# [0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
+fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
+[0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
+[0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
 
+fgsm_fgsm_t = np.array(fgsm_fgsm).transpose()
 # best = [[0.0, 0.10, 0.15, 0.20, 0.20, 0.25, 0.3], [0.0, 0.1, 0.15, 0.25, 0.3, 0.3, 0.3], [0.0,0.05, 0.15, 0.3, 0.25, 0.25, 0.25], [0.0, 0.15, 0.20,0.20, 0.20, 0.20, 0.20]]
 # labels = ['FGSM+FGSM', 'FGSM+PGD', 'PGD+PGD', 'PGD+FGSM']
 
@@ -766,9 +768,6 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 # plt.xlabel("Attack epsilon")
 # plt.ylabel("Best training epsilon")
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm+fgsm/ep_comparison.png')
-
-
-
 
 
 
@@ -829,16 +828,34 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 
 
 # plt.figure(figsize=(6,6))
-# plt.plot(epsilons, accuracies, "*-", label='FGSM')
+# for i in range(7):
+#     plt.plot(epsilons, fgsm_fgsm[i], "*-", label='eps: '+str(epsilons[i]))
 # plt.legend()
 # plt.yticks(np.arange(0, 1.1, step=0.1))
 # plt.xticks(np.arange(0, .35, step=0.05))
 # plt.title("Epsilon in adversarial training vs performance")
-# plt.xlabel("Epsilon in adversarial training")
+# plt.xlabel("Epsilon in the test set")
 # plt.ylabel("Accuracy on test set")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/epsilon_vs_performace.png')
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/test_epsilon_vs_accuracy.png')
+eps = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+highlights = [[0.1, 2], [0.15, 3], [0.2, 4], [0.2, 4], [0.25, 5], [0.3, 6]]
+fig, axs = plt.subplots(2, 3, figsize=(9,6))
+for i in range(2):
+    for j in range(3):
+        xs = fgsm_fgsm_t[i * 3 + j +1]
+        axs[i, j].plot(epsilons, xs)
+        axs[i, j].scatter(highlights[i * 3 + j][0], xs[highlights[i * 3 + j][1]])
+        axs[i, j].set_yticks(np.arange(0, 1.1, step=0.1))
+        axs[i, j].set_xticks(np.arange(0, .35, step=0.05))
+        axs[i, j].set_xticklabels(eps, rotation=45, ha="right",  rotation_mode="anchor")
+        axs[i, j].set_title(str(epsilons[i * 3 + j +1]) + " ep attacked test set")
+        axs[i, j].set(xlabel='Training epsilon', ylabel='Accuracy')
 
 
+# Hide x labels and tick labels for top plots and y ticks for right plots.
+for ax in axs.flat:
+    ax.label_outer()
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/test_epsilon_vs_accuracy_separate.png')
 
 
 ################## Experiment 2.3: checking how much adversarial training helps ##################################
