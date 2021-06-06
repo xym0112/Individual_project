@@ -142,8 +142,6 @@ def fgsm_attack(image, epsilon, data_grad):
     sign_data_grad = data_grad.sign()
     # Create the perturbed image by adjusting each pixel of the input image
     perturbed_image = image + epsilon * sign_data_grad
-    # # Adding clipping to maintain [0,1] range
-    # perturbed_image = torch.clamp(perturbed_image, 0, 1)
     # Return the perturbed image
     return perturbed_image
 
@@ -153,8 +151,6 @@ def bim_attack(image, target, epsilon, data_grad, num_steps):
     step_size = 0.5 * (epsilon/num_steps + epsilon)
     for i in range(num_steps):
         perturbed_image = fgsm_attack(image, step_size, data_grad).clone().detach().requires_grad_(True)
-        # clipped_delta = torch.clamp(perturbed_image.data - image.data, -epsilon, epsilon) #clipping the delta
-        # perturbed_image = torch.tensor(image.data + clipped_delta).clone().detach().requires_grad_(True)
         adv_backwards(model, perturbed_image, target, optimizer)
         data_grad = perturbed_image.grad.data
     return perturbed_image
@@ -390,8 +386,8 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
     print("=============")
 
-    # from sklearn.metrics import classification_report, confusion_matrix
-    # print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+    from sklearn.metrics import classification_report, confusion_matrix
+    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
     # print(confusion_matrix(y_true, y_pred))
     
@@ -419,8 +415,10 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/normal_example.png')
 # adv_train = False
 # #train(epoch_num, model, train_loader, val_loader, 'Normally_trained')
-model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
-model.eval()
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
+# model.eval()
+
+# adv_test(model, device, test_loader, 0.1, 'pgd', 1)
 
 # normal_testing(model, device, test_loader)
 # adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
@@ -476,9 +474,9 @@ model.eval()
 
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
-epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
-# #  
-examples = [[] for i in range(len(epsilons))]
+# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+# # #  
+# examples = [[] for i in range(len(epsilons))]
 # accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
 # for i in range(len(epsilons)):
 #     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
@@ -495,9 +493,9 @@ examples = [[] for i in range(len(epsilons))]
 
 #     print("================================================")
 
-accuracies_fgsm = [0.998329435349148, 0.9485466087537587, 0.644503842298697, 0.36618777146675574, 0.29836284664216506, 0.18392916805880388, 0.1506849315068493, 0.1506849315068493]
-accuracies_bim = [0.998329435349148, 0.958904109589041, 0.5962245238890745, 0.3504844637487471, 0.2216839291680588, 0.11693952555963916, 0.08002004677581022, 0.0982292014700969]
-accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.24757768125626461, 0.07801536919478784, 0.06064149682592716, 0.09188105579685933, 0.12245238890745072]
+# accuracies_fgsm = [0.998329435349148, 0.9485466087537587, 0.644503842298697, 0.36618777146675574, 0.29836284664216506, 0.18392916805880388, 0.1506849315068493, 0.1506849315068493]
+# accuracies_bim = [0.998329435349148, 0.958904109589041, 0.5962245238890745, 0.3504844637487471, 0.2216839291680588, 0.11693952555963916, 0.08002004677581022, 0.0982292014700969]
+# accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.24757768125626461, 0.07801536919478784, 0.06064149682592716, 0.09188105579685933, 0.12245238890745072]
 
 # plt.figure(figsize=(5,5))
 # plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
@@ -515,7 +513,7 @@ accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.
 
 # Examples of each attack
 # cnt = 0
-# fig = plt.figure(figsize=(6, 3))
+# fig = plt.figure(figsize=(12, 6))
 # fig.suptitle("Examples of adversarial images", fontsize=16)
 # sample = next(iter(test_loader))
 # data, target = sample[0].to(device), sample[1].to(device)
@@ -532,11 +530,11 @@ accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.
 
 #         data_grad = data.grad.data
 #         adv_ex = fgsm_attack(data, epsilons[i], data_grad).squeeze().detach().cpu().numpy()
-#         examples[j].append(adv_ex)
+#         examples[j].append(adv_ex[0])
 #         adv_ex = bim_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
-#         examples[j].append(adv_ex)
+#         examples[j].append(adv_ex[0])
 #         adv_ex = pgd_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
-#         examples[j].append(adv_ex)
+#         examples[j].append(adv_ex[0])
 
 #         cnt += 1
 #         ax = plt.subplot(3, len(epsilons),cnt)
@@ -554,48 +552,48 @@ accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.
         
 #         ex = examples[j][i]
 
-#         plt.imshow(ex[0], cmap="gray")
+#         plt.imshow(ex, cmap="gray", aspect='auto')
 
 
-# plt.tight_layout(pad=1.0)
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new.png')
+# plt.tight_layout()
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new_test.png')
 
 
 # Close up comparison between two images
-cnt = 0
-fig = plt.figure(figsize=(6, 3))
-fig.suptitle("Comparison between clean and adversarial images", fontsize=16)
-sample = next(iter(test_loader))
-data, target = sample[0].to(device), sample[1].to(device)
+# cnt = 0
+# fig = plt.figure(figsize=(6, 3))
+# fig.suptitle("Comparison between clean and adversarial images", fontsize=16)
+# sample = next(iter(test_loader))
+# data, target = sample[0].to(device), sample[1].to(device)
 
-data.requires_grad = True
-output = model(data)
-_, init_pred = output.max(1)
+# data.requires_grad = True
+# output = model(data)
+# _, init_pred = output.max(1)
 
-loss = F.nll_loss(output, target)
-model.zero_grad()
-loss.backward()
+# loss = F.nll_loss(output, target)
+# model.zero_grad()
+# loss.backward()
 
-data_grad = data.grad.data
-adv_ex = fgsm_attack(data, 0.1, data_grad).squeeze().detach().cpu().numpy()
+# data_grad = data.grad.data
+# adv_ex = fgsm_attack(data, 0.1, data_grad).squeeze().detach().cpu().numpy()
 
-plt.subplot(1, 2, 1)
-plt.imshow(data[0].squeeze().detach().cpu().numpy(), cmap="gray")
+# plt.subplot(1, 2, 1)
+# plt.imshow(data[0].squeeze().detach().cpu().numpy(), cmap="gray")
 
-plt.subplot(1, 2, 2)
-plt.imshow(adv_ex[0], cmap="gray")
+# plt.subplot(1, 2, 2)
+# plt.imshow(adv_ex[0], cmap="gray")
 
-# plt.tight_layout(pad=1.0)
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/epsilons/close_up.png')
+# # plt.tight_layout(pad=1.0)
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/epsilons/close_up.png')
 # =======================================================
 
 ########## Experiment 2.1: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
 # Compare the accuracy of fgsm-attack-trained model and pgd-attack-trained model
 # adv_train = True
 # accuracies = []
-epsilons = [0, .05, .1, .15, .2, .25, .3]
+# epsilons = [0, .05, .1, .15, .2, .25, .3]
 
-# train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/fgsm_trained', 1, 'fgsm', 0.1)
+# # train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/fgsm_trained', 1, 'fgsm', 0.1)
 
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
 # model.eval()
@@ -640,6 +638,37 @@ epsilons = [0, .05, .1, .15, .2, .25, .3]
 # print("========================================================")
 # print()
 # print()
+
+FGSM_FGSM = [94.58, 94.05, 94.09, 94.05] 
+FGSM_PGD = [83.83, 79.30, 78.92, 79.30]
+PGD_PGD = [90.84, 90.46, 90.50, 90.46]
+PGD_FGSM = [88.65, 86.33, 85.52, 86.33]
+
+labels = ['Precision', 'Recall', 'F1-score', 'Accuracy']
+
+x = np.arange(len(labels))  # the label locations
+width = 0.2  # the width of the bars
+
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - 0.3, FGSM_FGSM, width, label='FGSM+FGSM', color='midnightblue')
+rects2 = ax.bar(x - 0.1, FGSM_PGD, width, label='FGSM+PGD', color='royalblue')
+rects3 = ax.bar(x + 0.1, PGD_PGD, width, label='PGD+PGD', color='cornflowerblue')
+rects4 = ax.bar(x + 0.3, PGD_FGSM, width, label='PGD+FGSM', color='lightsteelblue')
+
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('Percentage(%)')
+ax.set_title('Overall transferabilty performance')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+
+# ax.bar_label(rects1, padding=3)
+# ax.bar_label(rects2, padding=3)
+
+fig.tight_layout()
+
+
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/transfer_bar.png')
 
 # ======================================= Experiment 1.2: train on adversarial test on clean =================
 # adv_train = True
