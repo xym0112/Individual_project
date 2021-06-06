@@ -23,7 +23,7 @@ random.seed(0)
 #torch.use_deterministic_algorithms(True)
 
 batch_size = 199
-USE_CUDA = True
+USE_CUDA = False
 epoch_num = 5
 val_interval = 1
 adv_train = True
@@ -474,7 +474,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 # # How does epsilon affects the accuracy for one attack?
 # accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
-epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
+# epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
 # # #  
 # examples = [[] for i in range(len(epsilons))]
 # accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
@@ -749,11 +749,11 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 
 # mean1, mean2, mean3 = [], [], []
 # # FGSM+FGSM:
-fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
-[0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
-[0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
+# fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
+# [0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
+# [0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
 
-fgsm_fgsm_t = np.array(fgsm_fgsm).transpose()
+# fgsm_fgsm_t = np.array(fgsm_fgsm).transpose()
 # best = [[0.0, 0.10, 0.15, 0.20, 0.20, 0.25, 0.3], [0.0, 0.1, 0.15, 0.25, 0.3, 0.3, 0.3], [0.0,0.05, 0.15, 0.3, 0.25, 0.25, 0.25], [0.0, 0.15, 0.20,0.20, 0.20, 0.20, 0.20]]
 # labels = ['FGSM+FGSM', 'FGSM+PGD', 'PGD+PGD', 'PGD+FGSM']
 
@@ -837,25 +837,25 @@ fgsm_fgsm_t = np.array(fgsm_fgsm).transpose()
 # plt.xlabel("Epsilon in the test set")
 # plt.ylabel("Accuracy on test set")
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/test_epsilon_vs_accuracy.png')
-eps = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-highlights = [[0.1, 2], [0.15, 3], [0.2, 4], [0.2, 4], [0.25, 5], [0.3, 6]]
-fig, axs = plt.subplots(2, 3, figsize=(9,6))
-for i in range(2):
-    for j in range(3):
-        xs = fgsm_fgsm_t[i * 3 + j +1]
-        axs[i, j].plot(epsilons, xs)
-        axs[i, j].scatter(highlights[i * 3 + j][0], xs[highlights[i * 3 + j][1]])
-        axs[i, j].set_yticks(np.arange(0, 1.1, step=0.1))
-        axs[i, j].set_xticks(np.arange(0, .35, step=0.05))
-        axs[i, j].set_xticklabels(eps, rotation=45, ha="right",  rotation_mode="anchor")
-        axs[i, j].set_title(str(epsilons[i * 3 + j +1]) + " ep attacked test set")
-        axs[i, j].set(xlabel='Training epsilon', ylabel='Accuracy')
+# eps = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+# highlights = [[0.1, 2], [0.15, 3], [0.2, 4], [0.2, 4], [0.25, 5], [0.3, 6]]
+# fig, axs = plt.subplots(2, 3, figsize=(9,6))
+# for i in range(2):
+#     for j in range(3):
+#         xs = fgsm_fgsm_t[i * 3 + j +1]
+#         axs[i, j].plot(epsilons, xs)
+#         axs[i, j].scatter(highlights[i * 3 + j][0], xs[highlights[i * 3 + j][1]])
+#         axs[i, j].set_yticks(np.arange(0, 1.1, step=0.1))
+#         axs[i, j].set_xticks(np.arange(0, .35, step=0.05))
+#         axs[i, j].set_xticklabels(eps, rotation=45, ha="right",  rotation_mode="anchor")
+#         axs[i, j].set_title(str(epsilons[i * 3 + j +1]) + " ep attacked test set")
+#         axs[i, j].set(xlabel='Training epsilon', ylabel='Accuracy')
 
 
-# Hide x labels and tick labels for top plots and y ticks for right plots.
-for ax in axs.flat:
-    ax.label_outer()
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/test_epsilon_vs_accuracy_separate.png')
+# # Hide x labels and tick labels for top plots and y ticks for right plots.
+# for ax in axs.flat:
+#     ax.label_outer()
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/test_epsilon_vs_accuracy_separate.png')
 
 
 ################## Experiment 2.3: checking how much adversarial training helps ##################################
@@ -950,21 +950,22 @@ half_3 = [51.18610090210491, 56.33144002672903, 63.39792849983294, 65.9204811226
 half_4 = [63.665218843969264, 63.79886401603741, 64.26662211827598, 65.51954560641497, 64.65085198797193, 62.84664216505179, 64.98496491814232, 65.13531573671901, 61.81089208152355, 65.18543267624457, 80.10357500835282]
 half_5 = [57.9017707985299, 55.49615770130304, 57.584363514868016, 61.69395255596392, 60.49114600735048, 55.34580688272636, 55.763448045439354, 56.71566989642499, 56.2145005011694, 63.782158369528894, 71.73404610758436]
 half_6 = [51.50350818576679, 51.08586702305379, 50.785165385900434, 49.7494153023722, 51.15268960908787, 51.620447711326435, 50.81857667891747, 50.9188105579686, 52.38890745071835, 63.347811560307385, 69.56231206147679]
-# percentages = [i for i in range(0, 110, 10)]
-# plt.figure(figsize=(5,5))
-# plt.plot(percentages, first, "*-", label='0.1, 0.05')
-# plt.plot(percentages, second, "*-", label='0.15, 0.1')
-# plt.plot(percentages, third, "*-", label='0.2, 0.15')
-# plt.plot(percentages, fourth, "*-", label='0.2, 0.2')
-# plt.plot(percentages, fifth, "*-", label='0.25, 0.25')
-# plt.plot(percentages, sixth, "*-", label='0.3, 0.3')
-# plt.legend()
-# plt.yticks(np.arange(0, 110, step=10))
-# plt.xticks(np.arange(0, 110, step=10))
-# plt.title("Accuracy vs Percentage")
-# plt.xlabel("Number(%) of adversarial images in training set")
-# plt.ylabel("Accuracy(%)")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage.png')
+
+percentages = [i for i in range(0, 110, 10)]
+plt.figure(figsize=(5,5))
+plt.plot(percentages, half_1, "*-", label='0.1, 0.05')
+plt.plot(percentages, half_2, "*-", label='0.15, 0.1')
+plt.plot(percentages, half_3, "*-", label='0.2, 0.15')
+plt.plot(percentages, half_4, "*-", label='0.2, 0.2')
+plt.plot(percentages, half_5, "*-", label='0.25, 0.25')
+plt.plot(percentages, half_6, "*-", label='0.3, 0.3')
+plt.legend(loc='lower right')
+plt.yticks(np.arange(0, 110, step=10))
+plt.xticks(np.arange(0, 110, step=10))
+plt.title("Accuracy vs Percentage")
+plt.xlabel("Number(%) of adversarial images in training set")
+plt.ylabel("Accuracy(%)")
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage_half.png')
 
 ########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
 # adv_train = True
