@@ -23,7 +23,7 @@ random.seed(0)
 #torch.use_deterministic_algorithms(True)
 
 batch_size = 199
-USE_CUDA = False
+USE_CUDA = True
 epoch_num = 5
 val_interval = 1
 adv_train = True
@@ -125,7 +125,7 @@ print("CUDA Available: ",torch.cuda.is_available())
 device = torch.device("cuda" if (USE_CUDA and torch.cuda.is_available()) else "cpu")
 #model = models.resnet50(pretrained=False, progress=True).to(device)
 #model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False).to(device)
-model = densenet121(spatial_dims=2,in_channels=1, out_channels=num_class).to(device)
+model = densenet121(spatial_dims=2,in_channels=1, out_channels=num_class, pretrained=True).to(device)
 
 loss_function = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), 1e-5)
@@ -254,6 +254,7 @@ def train(epoch_num, model, train_loader, val_loader, name, percentage, attack_n
             inputs.requires_grad = True
             optimizer.zero_grad()
             if adv_train:
+                print("shouldn't be here")
                 if i <= percentage * len(train_loader):
                     inputs = adv_examples_gen(model, inputs, labels, epsilon, attack_name)
                     adv_count = i
@@ -413,8 +414,8 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 #     plt.imshow(arr, cmap='gray', vmin=0, vmax=255)
 # plt.tight_layout()
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/normal_example.png')
-# adv_train = False
-# #train(epoch_num, model, train_loader, val_loader, 'Normally_trained')
+adv_train = False
+train(epoch_num, model, train_loader, val_loader, '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/small_eps/Pretrained', 1, '', 0.1)
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
 # model.eval()
 
@@ -473,51 +474,56 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/overall_comparison_bar.png')
 
 # # How does epsilon affects the accuracy for one attack?
-# accuracies_fgsm, accuracies_pgd, accuracies_cw = [], [], []
+
 # epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
-# # #  
-# examples = [[] for i in range(len(epsilons))]
+epsilons = [0, 0.001, 0.005, 0.007, 0.009, 0.01, 0.015, 0.02]  
+
+examples = [[] for i in range(len(epsilons))]
 # accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
-# for i in range(len(epsilons)):
-#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
-#     accuracies_fgsm.append(acc)
-#     #examples[i].append(ex[0])
+for i in range(len(epsilons)):
+    acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
+    accuracies_fgsm.append(acc)
+    #examples[i].append(ex[0])
 
-#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim', 1)
-#     accuracies_bim.append(acc)
-#     #examples[i].append(ex[0])
+    acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim', 1)
+    accuracies_bim.append(acc)
+    #examples[i].append(ex[0])
 
-#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
-#     accuracies_pgd.append(acc)
-#     #examples[i].append(ex[0])
+    acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
+    accuracies_pgd.append(acc)
+    # examples[i].append(ex[0])
 
 #     print("================================================")
-
+print(accuracies_fgsm)
+print(accuracies_bim)
+print(accuracies_pgd)
 # accuracies_fgsm = [0.998329435349148, 0.9485466087537587, 0.644503842298697, 0.36618777146675574, 0.29836284664216506, 0.18392916805880388, 0.1506849315068493, 0.1506849315068493]
 # accuracies_bim = [0.998329435349148, 0.958904109589041, 0.5962245238890745, 0.3504844637487471, 0.2216839291680588, 0.11693952555963916, 0.08002004677581022, 0.0982292014700969]
 # accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.24757768125626461, 0.07801536919478784, 0.06064149682592716, 0.09188105579685933, 0.12245238890745072]
-
-# plt.figure(figsize=(5,5))
-# plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
-# plt.plot(epsilons, accuracies_bim, "*-", label='BIM')
-# plt.plot(epsilons, accuracies_pgd, "*-", label='PGD')
-# plt.legend()
-# plt.yticks(np.arange(0, 1.1, step=0.1))
-# plt.xticks(np.arange(0, .35, step=0.05))
-# plt.title("How do epsilons affect the accuracy of the model?")
-# plt.xlabel("Epsilon")
-# plt.ylabel("Accuracy on test set")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Accuracy_vs_Epsilon_new.png')
+# accuracies_fgsm = [0.998329435349148, 0.9959906448379552, 0.9801202806548613, 0.9704310056799198, 0.9547276979619111, 0.9485466087537587, 0.9153023722018042, 0.8862345472769796]
+# accuracies_bim =[0.998329435349148, 0.9968259271633813, 0.9844637487470765, 0.9759438690277313, 0.965586368192449, 0.958904109589041, 0.9261610424323421, 0.8927497494153024]
+# accuracies_pgd =[0.998329435349148, 0.9968259271633813, 0.9841296358169062, 0.9751085867023054, 0.9634146341463414, 0.9557300367524223, 0.9204811226194454, 0.8723688606749082]
+plt.figure(figsize=(5,5))
+plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
+plt.plot(epsilons, accuracies_bim, "*-", label='BIM')
+plt.plot(epsilons, accuracies_pgd, "*-", label='PGD')
+plt.legend()
+plt.yticks(np.arange(0.8, 1.05, step=0.05))
+plt.xticks(np.arange(0, .025, step=0.005))
+plt.title("The performance of the pretrained model")
+plt.xlabel("Epsilon")
+plt.ylabel("Accuracy on test set")
+plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/small_eps/exp1/Accuracy_vs_Epsilon_pretrained.png')
 
 # ==============================================
-
+# import itertools
 # Examples of each attack
 # cnt = 0
 # fig = plt.figure(figsize=(12, 6))
 # fig.suptitle("Examples of adversarial images", fontsize=16)
-# sample = next(iter(test_loader))
+# sample = next(itertools.islice(test_loader, 12, None))
 # data, target = sample[0].to(device), sample[1].to(device)
-
+# print(target)
 # data.requires_grad = True
 # for j in range(3):
 #     for i in range(len(epsilons)):
@@ -530,11 +536,11 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 #         data_grad = data.grad.data
 #         adv_ex = fgsm_attack(data, epsilons[i], data_grad).squeeze().detach().cpu().numpy()
-#         examples[j].append(adv_ex[0])
+#         examples[j].append(adv_ex[198])
 #         adv_ex = bim_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
-#         examples[j].append(adv_ex[0])
+#         examples[j].append(adv_ex[198])
 #         adv_ex = pgd_attack(data, target, epsilons[i], data_grad, 3).squeeze().detach().cpu().numpy()
-#         examples[j].append(adv_ex[0])
+#         examples[j].append(adv_ex[198])
 
 #         cnt += 1
 #         ax = plt.subplot(3, len(epsilons),cnt)
@@ -556,7 +562,7 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 
 
 # plt.tight_layout()
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new_test.png')
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new_cxr.png')
 
 
 # Close up comparison between two images
@@ -936,36 +942,68 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 #     accuracies.append(acc * 100)
 # print(accuracies)
 
-full_1 = [74.0227196792516, 85.98396257935183, 90.2439024390244, 92.04811226194454, 98.36284664216505, 98.44637487470766, 98.79719345138656, 98.86401603742064, 99.43200801871032, 99.51553625125293, 98.5800200467758]
-full_2 = [41.22953558302706, 58.93752088205814, 62.04477113264283, 62.89675910457735, 61.493484797861676, 64.96825927163381, 62.19512195121951, 66.33812228533245, 63.48145673237554, 72.20180420982291, 98.96424991647177]
-full_3 = [21.500167056465084, 37.33711994654193, 45.07183427998663, 44.83795522886736, 48.19579017707985, 50.15035081857668, 50.501169395255594, 56.866020715001675, 53.74206481790845, 52.42231874373539, 98.41296358169062]
-full_4 = [46.191112596057465, 46.174406949548946, 46.174406949548946, 47.978616772469096, 47.343802205145344, 45.07183427998663, 46.174406949548946, 46.99298362846642, 43.60173738723689, 48.14567323755429, 92.84998329435349]
-full_5 = [39.54226528566656, 37.53758770464417, 38.823922485800196, 41.56364851319746, 40.22719679251587, 35.56632141663882, 35.666555295689946, 36.3848980955563, 35.78349482124958, 42.449047778149016, 90.99565653190778]
-full_6 = [32.993651854326764, 33.22753090544604, 32.75977280320748, 29.35182091546943, 33.06047444036084, 32.659538924156365, 30.437687938523222, 32.19178082191781, 34.51386568660207, 44.336785833611756, 90.11025726695622]
+# full_1 = [74.0227196792516, 85.98396257935183, 90.2439024390244, 92.04811226194454, 98.36284664216505, 98.44637487470766, 98.79719345138656, 98.86401603742064, 99.43200801871032, 99.51553625125293, 98.5800200467758]
+# full_2 = [41.22953558302706, 58.93752088205814, 62.04477113264283, 62.89675910457735, 61.493484797861676, 64.96825927163381, 62.19512195121951, 66.33812228533245, 63.48145673237554, 72.20180420982291, 98.96424991647177]
+# full_3 = [21.500167056465084, 37.33711994654193, 45.07183427998663, 44.83795522886736, 48.19579017707985, 50.15035081857668, 50.501169395255594, 56.866020715001675, 53.74206481790845, 52.42231874373539, 98.41296358169062]
+# full_4 = [46.191112596057465, 46.174406949548946, 46.174406949548946, 47.978616772469096, 47.343802205145344, 45.07183427998663, 46.174406949548946, 46.99298362846642, 43.60173738723689, 48.14567323755429, 92.84998329435349]
+# full_5 = [39.54226528566656, 37.53758770464417, 38.823922485800196, 41.56364851319746, 40.22719679251587, 35.56632141663882, 35.666555295689946, 36.3848980955563, 35.78349482124958, 42.449047778149016, 90.99565653190778]
+# full_6 = [32.993651854326764, 33.22753090544604, 32.75977280320748, 29.35182091546943, 33.06047444036084, 32.659538924156365, 30.437687938523222, 32.19178082191781, 34.51386568660207, 44.336785833611756, 90.11025726695622]
+
+# accuracies = [full_1, full_2, full_3, full_4, full_5, full_6]
+# for i in range(len(accuracies)):
+#     accuracies[i] = np.array(accuracies[i])
+#     accuracies[i] = np.round(accuracies[i], 2).tolist()
+# print(accuracies)
+
+# half_1 = [78.86735716672236, 89.04109589041096, 91.71399933177415, 93.35115268960908, 98.79719345138656, 98.8306047444036, 99.0811894420314, 97.44403608419645, 97.69462078182426, 98.09555629802873, 97.32709655863681]
+# half_2 = [60.30738389575676, 68.19244904777815, 69.1613765452723, 69.2449047778149, 69.61242900100234, 70.53123955897094, 69.8296024056131, 71.50016705646507, 69.89642499164718, 76.49515536251253, 89.64249916471768]
+# half_3 = [51.18610090210491, 56.33144002672903, 63.39792849983294, 65.92048112261945, 64.1997995322419, 66.43835616438356, 66.90611426662213, 66.93952555963915, 67.0564650851988, 66.20447711326428, 85.66655529568993]
+# half_4 = [63.665218843969264, 63.79886401603741, 64.26662211827598, 65.51954560641497, 64.65085198797193, 62.84664216505179, 64.98496491814232, 65.13531573671901, 61.81089208152355, 65.18543267624457, 80.10357500835282]
+# half_5 = [57.9017707985299, 55.49615770130304, 57.584363514868016, 61.69395255596392, 60.49114600735048, 55.34580688272636, 55.763448045439354, 56.71566989642499, 56.2145005011694, 63.782158369528894, 71.73404610758436]
+# half_6 = [51.50350818576679, 51.08586702305379, 50.785165385900434, 49.7494153023722, 51.15268960908787, 51.620447711326435, 50.81857667891747, 50.9188105579686, 52.38890745071835, 63.347811560307385, 69.56231206147679]
+
+# fig, ax = plt.subplots(figsize=(20,6))
+# rows, cols = ['0.1, 0.05', '0.15, 0.1', '0.2, 0.15', '0.2, 0.2', '0.25, 0.25', '0.3, 0.3'], [str(i)+'%' for i in range(0, 110, 10)]
+
+# rcolors = plt.cm.BuPu(np.full(len(rows), 0.1))
+# ccolors = plt.cm.BuPu(np.full(len(cols), 0.1))
+# table = ax.table(cellText=accuracies, rowLabels=rows, rowColours=rcolors, colLabels=cols, colColours=ccolors, loc='center')
+# table[(1, 0)].set_facecolor("#56b5fd")
+# table[(2, 0)].set_facecolor("#56b5fd")
+# table[(3, 1)].set_facecolor("#56b5fd")
+# table[(4, 2)].set_facecolor("#56b5fd")
+# table[(5, 3)].set_facecolor("#56b5fd")
+# table[(6, 3)].set_facecolor("#56b5fd")
+# table[(7, 4)].set_facecolor("#56b5fd")
+# table.set_fontsize(10)
+# ax.set_xlabel("Epsilon used in testing")
+# ax.set_ylabel("Epsilon used in training")
+# ax.get_xaxis().set_visible(False)
+# ax.get_yaxis().set_visible(False)
+
+# table.scale(1.5, 1.5)
+# plt.box(on=None)
+
+# plt.title("Epsilons used in training and testing")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/full_table.png')
 
 
-half_1 = [78.86735716672236, 89.04109589041096, 91.71399933177415, 93.35115268960908, 98.79719345138656, 98.8306047444036, 99.0811894420314, 97.44403608419645, 97.69462078182426, 98.09555629802873, 97.32709655863681]
-half_2 = [60.30738389575676, 68.19244904777815, 69.1613765452723, 69.2449047778149, 69.61242900100234, 70.53123955897094, 69.8296024056131, 71.50016705646507, 69.89642499164718, 76.49515536251253, 89.64249916471768]
-half_3 = [51.18610090210491, 56.33144002672903, 63.39792849983294, 65.92048112261945, 64.1997995322419, 66.43835616438356, 66.90611426662213, 66.93952555963915, 67.0564650851988, 66.20447711326428, 85.66655529568993]
-half_4 = [63.665218843969264, 63.79886401603741, 64.26662211827598, 65.51954560641497, 64.65085198797193, 62.84664216505179, 64.98496491814232, 65.13531573671901, 61.81089208152355, 65.18543267624457, 80.10357500835282]
-half_5 = [57.9017707985299, 55.49615770130304, 57.584363514868016, 61.69395255596392, 60.49114600735048, 55.34580688272636, 55.763448045439354, 56.71566989642499, 56.2145005011694, 63.782158369528894, 71.73404610758436]
-half_6 = [51.50350818576679, 51.08586702305379, 50.785165385900434, 49.7494153023722, 51.15268960908787, 51.620447711326435, 50.81857667891747, 50.9188105579686, 52.38890745071835, 63.347811560307385, 69.56231206147679]
 
-percentages = [i for i in range(0, 110, 10)]
-plt.figure(figsize=(5,5))
-plt.plot(percentages, half_1, "*-", label='0.1, 0.05')
-plt.plot(percentages, half_2, "*-", label='0.15, 0.1')
-plt.plot(percentages, half_3, "*-", label='0.2, 0.15')
-plt.plot(percentages, half_4, "*-", label='0.2, 0.2')
-plt.plot(percentages, half_5, "*-", label='0.25, 0.25')
-plt.plot(percentages, half_6, "*-", label='0.3, 0.3')
-plt.legend(loc='lower right')
-plt.yticks(np.arange(0, 110, step=10))
-plt.xticks(np.arange(0, 110, step=10))
-plt.title("Accuracy vs Percentage")
-plt.xlabel("Number(%) of adversarial images in training set")
-plt.ylabel("Accuracy(%)")
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage_half.png')
+# percentages = [i for i in range(0, 110, 10)]
+# plt.figure(figsize=(5,5))
+# plt.plot(percentages, half_1, "*-", label='0.1, 0.05')
+# plt.plot(percentages, half_2, "*-", label='0.15, 0.1')
+# plt.plot(percentages, half_3, "*-", label='0.2, 0.15')
+# plt.plot(percentages, half_4, "*-", label='0.2, 0.2')
+# plt.plot(percentages, half_5, "*-", label='0.25, 0.25')
+# plt.plot(percentages, half_6, "*-", label='0.3, 0.3')
+# plt.legend(loc='lower right')
+# plt.yticks(np.arange(0, 110, step=10))
+# plt.xticks(np.arange(0, 110, step=10))
+# plt.title("Accuracy vs Percentage")
+# plt.xlabel("Number(%) of adversarial images in training set")
+# plt.ylabel("Accuracy(%)")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage_half.png')
 
 ########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
 # adv_train = True
