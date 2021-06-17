@@ -390,19 +390,19 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
     from sklearn.metrics import classification_report, confusion_matrix
     print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
-    # print(confusion_matrix(y_true, y_pred))
+    print(confusion_matrix(y_true, y_pred))
     
-    # for i in range(6):
-    #     acc[i] = acc[i] / class_num[i]
-    # print(acc)
+    for i in range(6):
+        acc[i] = acc[i] / class_num[i]
+    print(acc)
 
-    # print("=============")
+    print("=============")
 
     # Return the accuracy and an adversarial example
     return final_acc, adv_examples
 
 
-########## Experiment 1: Train normally, test on pertubated, does it affect the accuracy? ############
+
 # Show examples of image:
 
 # plt.subplots(2, 3, figsize=(8, 8))
@@ -414,16 +414,21 @@ def adv_test(model, device, test_loader, epsilon, attack_name, percentage):
 #     plt.imshow(arr, cmap='gray', vmin=0, vmax=255)
 # plt.tight_layout()
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/normal_example.png')
-adv_train = False
-train(epoch_num, model, train_loader, val_loader, '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/small_eps/Pretrained', 1, '', 0.1)
+
+
+########## Experiment 1: Train normally, test on pertubated, does it affect the accuracy? ############
+
+# adv_train = False
+# train(epoch_num, model, train_loader, val_loader, '/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained', 1, '', 0.1)
+
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
 # model.eval()
 
+# normal_testing(model, device, test_loader)
 # adv_test(model, device, test_loader, 0.1, 'pgd', 1)
 
-# normal_testing(model, device, test_loader)
-# adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
 
+####### Visualization of each class ########
 # normal = [99, 100, 99, 100, 99, 99]
 # adv = [7.8, 0, 17.8, 98.1, 84.6, 4.8]
 
@@ -447,6 +452,8 @@ train(epoch_num, model, train_loader, val_loader, '/homes/yx3017/Desktop/Individ
 # fig.tight_layout()
 
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/performance_comparison_bar.png')
+
+####### Visualization of overall performance #######
 # normal = [99.78, 99.78, 99.78, 99.78]
 # adv = [50.2, 35.73, 25.04, 35.73]
 
@@ -473,49 +480,53 @@ train(epoch_num, model, train_loader, val_loader, '/homes/yx3017/Desktop/Individ
 
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/overall_comparison_bar.png')
 
-# # How does epsilon affects the accuracy for one attack?
+########## Experiment 2: How does epsilon affects the accuracy for one attack? ############
 
 # epsilons = [0, .01, .05, .1, .15, .2, .25, .3]
-epsilons = [0, 0.001, 0.005, 0.007, 0.009, 0.01, 0.015, 0.02]  
+# For smaller epsilons mentioned in evaluation
+# epsilons = [0, 0.001, 0.005, 0.007, 0.009, 0.01, 0.015, 0.02]  
 
-examples = [[] for i in range(len(epsilons))]
-# accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
-for i in range(len(epsilons)):
-    acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
-    accuracies_fgsm.append(acc)
-    #examples[i].append(ex[0])
+# examples = [[] for i in range(len(epsilons))]
+# # accuracies_fgsm, accuracies_bim, accuracies_pgd = [], [], []
+# for i in range(len(epsilons)):
+#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'fgsm', 1)
+#     accuracies_fgsm.append(acc)
+#     #examples[i].append(ex[0])
 
-    acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim', 1)
-    accuracies_bim.append(acc)
-    #examples[i].append(ex[0])
+#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'bim', 1)
+#     accuracies_bim.append(acc)
+#     #examples[i].append(ex[0])
 
-    acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
-    accuracies_pgd.append(acc)
+#     acc, ex = adv_test(model, device, test_loader, epsilons[i], 'pgd', 1)
+#     accuracies_pgd.append(acc)
     # examples[i].append(ex[0])
 
 #     print("================================================")
-print(accuracies_fgsm)
-print(accuracies_bim)
-print(accuracies_pgd)
+
+# Normal epsilons result
 # accuracies_fgsm = [0.998329435349148, 0.9485466087537587, 0.644503842298697, 0.36618777146675574, 0.29836284664216506, 0.18392916805880388, 0.1506849315068493, 0.1506849315068493]
 # accuracies_bim = [0.998329435349148, 0.958904109589041, 0.5962245238890745, 0.3504844637487471, 0.2216839291680588, 0.11693952555963916, 0.08002004677581022, 0.0982292014700969]
 # accuracies_pgd = [0.998329435349148, 0.9565653190778484, 0.48128967591045774, 0.24757768125626461, 0.07801536919478784, 0.06064149682592716, 0.09188105579685933, 0.12245238890745072]
+
+# Small epsilon result
 # accuracies_fgsm = [0.998329435349148, 0.9959906448379552, 0.9801202806548613, 0.9704310056799198, 0.9547276979619111, 0.9485466087537587, 0.9153023722018042, 0.8862345472769796]
 # accuracies_bim =[0.998329435349148, 0.9968259271633813, 0.9844637487470765, 0.9759438690277313, 0.965586368192449, 0.958904109589041, 0.9261610424323421, 0.8927497494153024]
 # accuracies_pgd =[0.998329435349148, 0.9968259271633813, 0.9841296358169062, 0.9751085867023054, 0.9634146341463414, 0.9557300367524223, 0.9204811226194454, 0.8723688606749082]
-plt.figure(figsize=(5,5))
-plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
-plt.plot(epsilons, accuracies_bim, "*-", label='BIM')
-plt.plot(epsilons, accuracies_pgd, "*-", label='PGD')
-plt.legend()
-plt.yticks(np.arange(0.8, 1.05, step=0.05))
-plt.xticks(np.arange(0, .025, step=0.005))
-plt.title("The performance of the pretrained model")
-plt.xlabel("Epsilon")
-plt.ylabel("Accuracy on test set")
-plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/small_eps/exp1/Accuracy_vs_Epsilon_pretrained.png')
 
-# ==============================================
+######### Visualize accuracy vs epsilon #########
+# plt.figure(figsize=(5,5))
+# plt.plot(epsilons, accuracies_fgsm, "*-", label='FGSM')
+# plt.plot(epsilons, accuracies_bim, "*-", label='BIM')
+# plt.plot(epsilons, accuracies_pgd, "*-", label='PGD')
+# plt.legend()
+# plt.yticks(np.arange(0.8, 1.05, step=0.05))
+# plt.xticks(np.arange(0, .025, step=0.005))
+# plt.title("The performance of the pretrained model")
+# plt.xlabel("Epsilon")
+# plt.ylabel("Accuracy on test set")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/small_eps/exp1/Accuracy_vs_Epsilon_pretrained.png')
+
+########## Visualization of adversarial samples #########
 # import itertools
 # Examples of each attack
 # cnt = 0
@@ -565,7 +576,7 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/adverexample_new_cxr.png')
 
 
-# Close up comparison between two images
+############ Close up comparison between two images ###########
 # cnt = 0
 # fig = plt.figure(figsize=(6, 3))
 # fig.suptitle("Comparison between clean and adversarial images", fontsize=16)
@@ -591,9 +602,16 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 
 # # plt.tight_layout(pad=1.0)
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/epsilons/close_up.png')
-# =======================================================
 
-########## Experiment 2.1: adding fsgm attacked images into the training set, improve accuracy against adv attacked test set? ############
+########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
+# adv_train = True
+# train(epoch_num, model, train_loader, val_loader, 'Pure_adv_trained', 1)
+# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Individual_project/MedNist_experiment/Pure_adv_trained.pth'))
+# model.eval()
+
+# normal_testing(model, device, test_loader)
+
+########## Experiment 4.1: adding perturbed images into the training set, improve accuracy against adv attacked test set? ############
 # Compare the accuracy of fgsm-attack-trained model and pgd-attack-trained model
 # adv_train = True
 # accuracies = []
@@ -604,6 +622,7 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
 # model.eval()
 
+
 # print("======== FGSM trained, test on FGSM test set ===========")
 # acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
 # print("Adversarial training using FGSM testing on FGSM set achieves an accuracy of: " + str(acc) + " on the FGSM test set.")
@@ -611,76 +630,10 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 # print()
 # print()
 
-# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
-# model.eval()
-
-# print("======== FGSM trained, test on PGD test set ===========")
-# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
-# print("Adversarial training using FGSM testing on PGD set achieves an accuracy of: " + str(acc) + " on the PGD test set.")
-# print("========================================================")
-# print()
-# print()
-
-
-# train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/pgd_trained', 1, 'pgd', 0.1)
-
-# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
-# model.eval()
-# print("======== PGD trained, test on FGSM test set ===========")
-# acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
-# print("Adversarial training using PGD testing on FGSM set achieves an accuracy of: " + str(acc) + " .")
-# print("========================================================")
-# print()
-# print()
-
-
-
-
-# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
-# model.eval()
-# print("======== PGD trained, test on PGD test set ===========")
-# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
-# print("Adversarial training using PGD testing on PGD achieves an accuracy of: " + str(acc) + " .")
-# print("========================================================")
-# print()
-# print()
-
-# FGSM_FGSM = [94.58, 94.05, 94.09, 94.05] 
-# FGSM_PGD = [83.83, 79.30, 78.92, 79.30]
-# PGD_PGD = [90.84, 90.46, 90.50, 90.46]
-# PGD_FGSM = [88.65, 86.33, 85.52, 86.33]
-
-# labels = ['Precision', 'Recall', 'F1-score', 'Accuracy']
-
-# x = np.arange(len(labels))  # the label locations
-# width = 0.2  # the width of the bars
-
-# fig, ax = plt.subplots()
-# rects1 = ax.bar(x - 0.3, FGSM_FGSM, width, label='FGSM+FGSM', color='midnightblue')
-# rects2 = ax.bar(x - 0.1, FGSM_PGD, width, label='FGSM+PGD', color='royalblue')
-# rects3 = ax.bar(x + 0.1, PGD_PGD, width, label='PGD+PGD', color='cornflowerblue')
-# rects4 = ax.bar(x + 0.3, PGD_FGSM, width, label='PGD+FGSM', color='lightsteelblue')
-
-# # Add some text for labels, title and custom x-axis tick labels, etc.
-# ax.set_ylabel('Percentage(%)')
-# ax.set_title('Overall transferabilty performance')
-# ax.set_xticks(x)
-# ax.set_xticklabels(labels)
-# ax.legend()
-
-# # ax.bar_label(rects1, padding=3)
-# # ax.bar_label(rects2, padding=3)
-
-# fig.tight_layout()
-
-
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/transfer_bar.png')
-
-# ======================================= Experiment 1.2: train on adversarial test on clean =================
+######### Visualize the FGSM-trained model and standard model ##########
 # adv_train = True
-# train(epoch_num, model, train_loader, val_loader, 'experiment_1/all_adversarial/pgd_0.2', 1, 'pgd', 0.2)
+# train(epoch_num, model, train_loader, val_loader, 'experiment_1/all_adversarial/fgsm_0.25', 1, 'fgsm', 0.25)
 # normal_testing(model, device, test_loader)
-
 
 # normal = [50.22, 35.73, 25.04, 35.73]
 # adv = [94.58, 94.05, 94.09, 94.05]
@@ -706,10 +659,23 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_comparison.png')
 
+
+
+
+# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
+# model.eval()
+# print("======== PGD trained, test on PGD test set ===========")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
+# print("Adversarial training using PGD testing on PGD achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
+
 # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_1/Normally_trained.pth'))
 # model.eval()
 # adv_test(model, device, test_loader, 0.1, 'pgd', 1)
 
+########## Visualize the PGD-trained model and standard model ###################
 # normal = [26.12, 25.01, 14.26, 25.01]
 # adv = [90.84, 90.46, 90.5, 90.46]
 # labels = ['Precision','Recall', 'F1-score', 'Accuracy']
@@ -735,10 +701,66 @@ plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_comparison.png')
 
 
+########## Experiment 5: Transferability ############
 
-# ======================================= Experiment 2.2: compare epsilons ======================
+# model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/fgsm_trained.pth'))
+# model.eval()
+
+# print("======== FGSM trained, test on PGD test set ===========")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'pgd', 1)
+# print("Adversarial training using FGSM testing on PGD set achieves an accuracy of: " + str(acc) + " on the PGD test set.")
+# print("========================================================")
+# print()
+# print()
+
+
+# train(epoch_num, model, train_loader, val_loader, 'experiment_2/Adversarial_training_help/pgd_trained', 1, 'pgd', 0.1)
+
+# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/pgd_trained.pth'))
+# model.eval()
+# print("======== PGD trained, test on FGSM test set ===========")
+# acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 1)
+# print("Adversarial training using PGD testing on FGSM set achieves an accuracy of: " + str(acc) + " .")
+# print("========================================================")
+# print()
+# print()
+
+############# Visualize the transferability #############
+# FGSM_FGSM = [94.58, 94.05, 94.09, 94.05] 
+# FGSM_PGD = [83.83, 79.30, 78.92, 79.30]
+# PGD_PGD = [90.84, 90.46, 90.50, 90.46]
+# PGD_FGSM = [88.65, 86.33, 85.52, 86.33]
+
+# labels = ['Precision', 'Recall', 'F1-score', 'Accuracy']
+
+# x = np.arange(len(labels))  # the label locations
+# width = 0.2  # the width of the bars
+
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - 0.3, FGSM_FGSM, width, label='FGSM+FGSM', color='midnightblue')
+# rects2 = ax.bar(x - 0.1, FGSM_PGD, width, label='FGSM+PGD', color='royalblue')
+# rects3 = ax.bar(x + 0.1, PGD_PGD, width, label='PGD+PGD', color='cornflowerblue')
+# rects4 = ax.bar(x + 0.3, PGD_FGSM, width, label='PGD+FGSM', color='lightsteelblue')
+
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Percentage(%)')
+# ax.set_title('Overall transferabilty performance')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels)
+# ax.legend(loc='lower right')
+
+# # ax.bar_label(rects1, padding=3)
+# # ax.bar_label(rects2, padding=3)
+
+# fig.tight_layout()
+
+
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/Adversarial_training_help/transfer_bar.png')
+
+
+########## Experiment 6: Epsilons between training and testing ############# 
 # accuracies = []
-epsilons = [i/100 for i in range(0, 35, 5)]
+# epsilons = [i/100 for i in range(0, 35, 5)]
 # # Compare different epsilons
 # for i in range(0, 35, 5):
 #     # train(epoch_num, model, train_loader, val_loader, 'experiment_2/epsilons/pgd+fgsm/pgd+fgsm_epsilon' + str(i/100), 1, 'pgd', i/100)
@@ -752,13 +774,13 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 #     accuracies.append(acc_list)
 # print(accuracies)
 
-
 # mean1, mean2, mean3 = [], [], []
 # # FGSM+FGSM:
 # fgsm_fgsm = [[0.9987, 0.6756, 0.41, 0.2471, 0.2235, 0.2265, 0.2163], [0.9968, 0.9621, 0.7698, 0.5122, 0.3799, 0.219, 0.1923], 
 # [0.9779, 0.9818, 0.9215, 0.7001, 0.5124, 0.3662, 0.2653], [0.8496, 0.8082, 0.9838, 0.9562, 0.8116, 0.6345, 0.4511], 
 # [0.7399, 0.5578, 0.8249, 0.9686, 0.94, 0.8182, 0.6811], [0.6255, 0.5277, 0.5862, 0.9178, 0.856, 0.9061, 0.7822], [0.5494, 0.3899, 0.5175, 0.6385, 0.8705, 0.8059, 0.8076]]
 
+##### Visualize training epsilon points ###########
 # fgsm_fgsm_t = np.array(fgsm_fgsm).transpose()
 # best = [[0.0, 0.10, 0.15, 0.20, 0.20, 0.25, 0.3], [0.0, 0.1, 0.15, 0.25, 0.3, 0.3, 0.3], [0.0,0.05, 0.15, 0.3, 0.25, 0.25, 0.25], [0.0, 0.15, 0.20,0.20, 0.20, 0.20, 0.20]]
 # labels = ['FGSM+FGSM', 'FGSM+PGD', 'PGD+PGD', 'PGD+FGSM']
@@ -776,37 +798,23 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/fgsm+fgsm/ep_comparison.png')
 
 
-
-
 # # FGSM+PGD:
 # fgsm_pgd = [[0.9982, 0.5576, 0.2392, 0.1712, 0.1457, 0.0381, 0.005], [0.9967, 0.9475, 0.6263, 0.4355, 0.2633, 0.1804, 0.1727], 
 # [0.9442, 0.9703, 0.8953, 0.5379, 0.4462, 0.3009, 0.2035], [0.8281, 0.7875, 0.9013, 0.5755, 0.4569, 0.3936, 0.2581], 
 # [0.7265, 0.511, 0.7997, 0.7145, 0.4069, 0.2771, 0.2718], [0.6091, 0.4056, 0.4591, 0.8259, 0.6415, 0.4332, 0.292], [0.6057, 0.4106, 0.3872, 0.4855, 0.7857, 0.5636, 0.3388]]
 
-# fgsm_pgd_t = np.array(fgsm_pgd).transpose()
 
 # # PGD+PGD:
 # pgd_pgd = [[0.9985, 0.5521, 0.2259, 0.1702, 0.0762, 0.0057, 0.0286], [0.9926, 0.9452, 0.6888, 0.442, 0.2618, 0.1893, 0.1727], 
 # [0.9774, 0.9359, 0.8867, 0.7305, 0.5461, 0.4387, 0.3329], [0.9773, 0.9437, 0.8951, 0.8131, 0.7095, 0.5416, 0.361], 
 # [0.9556, 0.9145, 0.8724, 0.8228, 0.7604, 0.6811, 0.5212], [0.9208, 0.8901, 0.8598, 0.8336, 0.8034, 0.7594, 0.6808], [0.9262, 0.8963, 0.8717, 0.8393, 0.7952, 0.7427, 0.6679]]     
 
-# pgd_pgd_t = np.array(pgd_pgd).transpose()
-
 # # PGD+FGSM:
 # pgd_fgsm = [[0.9945, 0.5518, 0.3343, 0.2355, 0.221, 0.2431, 0.2474], [0.993, 0.9424, 0.7406, 0.561, 0.3475, 0.2117, 0.1824], [0.9856, 0.9607, 0.92, 0.8532, 0.729, 0.6183, 0.5152], 
 # [0.9853, 0.9644, 0.9405, 0.9021, 0.8403, 0.7147, 0.5605], [0.9818, 0.9574, 0.9526, 0.9415, 0.9238, 0.8801, 0.8004], 
 # [0.5778, 0.5052, 0.4901, 0.7165, 0.7668, 0.7469, 0.6848], [0.5436, 0.4749, 0.4641, 0.4901, 0.6497, 0.6488, 0.5989]]
-# pgd_fgsm_t = np.array(pgd_fgsm).transpose()
 
-
-
-
-# for l in pgd_pgd:
-#     mean2.append(np.average(l))
-# for l in pgd_fgsm:
-#     mean3.append(np.average(l))
-
-
+####### Visualize the relationship between training and attacking epsilon #############
 # fig, ax = plt.subplots()
 # rows, cols = [str(i/100) for i in range(0, 35, 5)], [str(i/100) for i in range(0, 35, 5)]
 
@@ -831,7 +839,6 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 
 # plt.title("Epsilons used in training and testing")
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/epsilon_train_vs_test.png')
-
 
 # plt.figure(figsize=(6,6))
 # for i in range(7):
@@ -864,50 +871,8 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/epsilons/test_epsilon_vs_accuracy_separate.png')
 
 
-################## Experiment 2.3: checking how much adversarial training helps ##################################
+################## Experiment 7: checking the percenatge of adversarial training ##################################
 
-# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
-# for percentage in percentages:
-#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
-#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
-#     model.eval()
-#     acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.5)
-#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
-#     accuracies.append(acc)
-
-# accuracies = [0.5803541597059806, 0.7467423989308386, 0.7783160708319412, 0.9139659204811226, 0.9341797527564317, 0.9513865686602071, 0.9632475776812562, 0.9488807216839291, 0.975609756097561, 0.9667557634480455]
-# plt.figure(figsize=(5,5))
-# plt.plot(percentages, accuracies, "*-", label='FGSM')
-# plt.legend()
-# plt.yticks(np.arange(0.4, 1.1, step=0.1))
-# plt.xticks(np.arange(0, 1.1, step=0.1))
-# plt.title("Accuracy vs Percentage")
-# plt.xlabel("Percentage of adversarial images in training set")
-# plt.ylabel("Accuracy")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage.png')
-
-# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 50% adversarially pertubated test set
-# for percentage in percentages:
-#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
-#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
-#     model.eval()
-#     acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.1)
-#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
-#     accuracies.append(acc)
-
-# accuracies = [0.5803541597059806, 0.7467423989308386, 0.7783160708319412, 0.9139659204811226, 0.9341797527564317, 0.9513865686602071, 0.9632475776812562, 0.9488807216839291, 0.975609756097561, 0.9667557634480455]
-# plt.figure(figsize=(5,5))
-# plt.plot(percentages, accuracies, "*-", label='FGSM')
-# plt.legend()
-# plt.yticks(np.arange(0.4, 1.1, step=0.1))
-# plt.xticks(np.arange(0, 1.1, step=0.1))
-# plt.title("Accuracy vs Percentage")
-# plt.xlabel("Percentage of adversarial images in 50% pertubated training set")
-# plt.ylabel("Accuracy")
-# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage_0.1.png')
-    
-
-   ################################# 
 # Pick the best situation: 0.1 in training and 0.05 in testing
 # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% FGSM-adversarially pertubated test set
 
@@ -927,7 +892,6 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 # # 0.3+0.3
 # sixth = [27.347143334447043, 27.51419979953224, 24.94153023722018, 31.490143668559973, 31.60708319411961, 30.47109923154026, 24.189776144336786, 16.60541262946876, 28.98429669228199, 16.271299699298364, 69.7460741730705]
 
-#############
 ########### 50% ###############
 
 # percentages = [i/10 for i in range(0, 11)]
@@ -1005,10 +969,32 @@ epsilons = [i/100 for i in range(0, 35, 5)]
 # plt.ylabel("Accuracy(%)")
 # plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/experiment_2/how_much_adv_help/accuracy_vs_percentage_half.png')
 
-########## Experiment 3: Purely train on adversarial dataset, test on clean test set? ############
-# adv_train = True
-# train(epoch_num, model, train_loader, val_loader, 'Pure_adv_trained', 1)
-# # model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Individual_project/MedNist_experiment/Pure_adv_trained.pth'))
-# model.eval()
+######### First attempt, discarded ########
+# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 100% adversarially pertubated test set
+# for percentage in percentages:
+#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
+#     model.eval()
+#     acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.5)
+#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+#     accuracies.append(acc)
 
-# normal_testing(model, device, test_loader)
+# accuracies = [0.5803541597059806, 0.7467423989308386, 0.7783160708319412, 0.9139659204811226, 0.9341797527564317, 0.9513865686602071, 0.9632475776812562, 0.9488807216839291, 0.975609756097561, 0.9667557634480455]
+# plt.figure(figsize=(5,5))
+# plt.plot(percentages, accuracies, "*-", label='FGSM')
+# plt.legend()
+# plt.yticks(np.arange(0.4, 1.1, step=0.1))
+# plt.xticks(np.arange(0, 1.1, step=0.1))
+# plt.title("Accuracy vs Percentage")
+# plt.xlabel("Percentage of adversarial images in training set")
+# plt.ylabel("Accuracy")
+# plt.savefig('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Results/Accuracy_vs_Percentage.png')
+
+# # Use FGSM attack with epsilon 0.1 in the training phase, then test on 50% adversarially pertubated test set
+# for percentage in percentages:
+#     #train(epoch_num, model, train_loader, val_loader, 'Adversarially_trained_' + str(percentage), percentage)
+#     model.load_state_dict(torch.load('/homes/yx3017/Desktop/Individual_project/Individual_project/MedNist_experiment/Adversarially_trained_' + str(percentage) + '.pth'))
+#     model.eval()
+#     acc, _ = adv_test(model, device, test_loader, 0.1, 'fgsm', 0.1)
+#     print("With percentage: " + str(percentage) + " of adversarial training it achieves accuracy of: " + str(acc) + " .")
+#     accuracies.append(acc)
